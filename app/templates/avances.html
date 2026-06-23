@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "components.html" import page_header, panel, input, button %}
+
+{% block title %}Avances{% endblock %}
+
+{% block content %}
+{{ page_header("Avances", "Calcula el avance del periodo con los datos mensuales registrados.") }}
+
+{% call panel() %}
+<form method="get" class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <label class="block lg:col-span-2">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Indicador</span>
+        <select name="indicador_id" onchange="this.form.submit()" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+            <option value="" {% if not indicador_id %}selected{% endif %}>Todos los indicadores</option>
+            {% for i in indicadores %}
+                <option value="{{ i.id }}" {% if i.id == indicador_id %}selected{% endif %}>{{ i.codigo }} — {{ i.nombre_indicador }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label class="block">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Gestion</span>
+        <select name="gestion_id" onchange="this.form.submit()" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+            {% for g in gestiones %}
+                <option value="{{ g.id }}" {% if g.id == gestion_id %}selected{% endif %}>{{ g.nombre }}</option>
+            {% endfor %}
+        </select>
+    </label>
+</form>
+{% endcall %}
+
+{% call panel() %}
+<form method="post" class="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
+    <input type="hidden" name="indicador_id" value="{{ indicador_id or '' }}">
+    <input type="hidden" name="gestion_id" value="{{ gestion_id }}">
+    <label class="block">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Periodo</span>
+        <select name="periodo_id" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+            {% for p in periodos %}
+                <option value="{{ p.id }}">{{ p.nombre }} · {{ p.mes_inicio_nombre }} a {{ p.mes_fin_nombre }}</option>
+            {% endfor %}
+        </select>
+        <span class="mt-2 block rounded-xl bg-brand-50 px-3 py-2 text-xs font-medium text-brand-700">
+            Tipo 1 usa el ultimo mes del periodo: (valor obtenido / logro esperado) x 100.
+        </span>
+    </label>
+    <div class="flex items-end">{{ button("Calcular Tipo 1") }}</div>
+</form>
+{% endcall %}
+
+<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-950">Resultados registrados</h2>
+<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr class="transition hover:bg-slate-50/80">
+                <th class="px-4 py-3 text-left font-bold">Código</th>
+                <th class="px-4 py-3 text-left font-bold">Indicador</th>
+                <th class="px-4 py-3 text-left font-bold">Gestión</th>
+                <th class="px-4 py-3 text-left font-bold">Periodo</th>
+                <th class="px-4 py-3 text-left font-bold">Tipo</th>
+                <th class="px-4 py-3 text-right font-bold">Resultado</th>
+                <th class="px-4 py-3 text-left font-bold">Estado</th>
+                <th class="px-4 py-3 text-left font-bold">Alerta</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+            {% for a in avances %}
+            <tr>
+                <td class="px-4 py-3 font-semibold text-brand-700">{{ a.codigo }}</td>
+                <td class="px-4 py-3">{{ a.nombre_indicador }}</td>
+                <td class="px-4 py-3">{{ a.gestion }}</td>
+                <td class="px-4 py-3">{{ a.periodo }}</td>
+                <td class="px-4 py-3">{{ a.tipo_avance.replace("_", " ").title() }}</td>
+                <td class="px-4 py-3 text-right">{{ "%.2f"|format(a.resultado_vista) }}</td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold {{ a.estado.clase }}">
+                        {{ a.estado.nombre }}
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex rounded-full border px-2 py-1 text-xs font-semibold {{ a.alerta.clase }}">
+                        {{ a.alerta.texto }}
+                    </span>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="px-4 py-10 text-center text-sm font-medium text-slate-500">
+                    Aun no hay avances calculados para esta gestion.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% from "components.html" import page_header, panel, input, button %}
+
+{% block title %}Metas y Valores{% endblock %}
+
+{% block content %}
+{{ page_header("Metas y Valores", "Registra metas mensuales y valores obtenidos.") }}
+
+{% call panel() %}
+<form method="get" class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <label class="block lg:col-span-2">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Indicador</span>
+        <select name="indicador_id" onchange="this.form.submit()" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+            {% for i in indicadores %}
+                <option value="{{ i.id }}" {% if i.id == indicador_id %}selected{% endif %}>{{ i.codigo }} — {{ i.nombre_indicador }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label class="block">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Gestion</span>
+        <select name="gestion_id" onchange="this.form.submit()" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+            {% for g in gestiones %}
+                <option value="{{ g.id }}" {% if g.id == gestion_id %}selected{% endif %}>{{ g.nombre }}</option>
+            {% endfor %}
+        </select>
+    </label>
+</form>
+{% endcall %}
+
+{% call panel() %}
+<form method="post" class="grid grid-cols-1 gap-4 lg:grid-cols-5">
+    <input type="hidden" name="indicador_id" value="{{ indicador_id }}">
+    <input type="hidden" name="gestion_id" value="{{ gestion_id }}">
+    <label class="block">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Mes</span>
+        <select name="mes_id" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+            {% for m in meses %}
+                <option value="{{ m.id }}">{{ m.nombre }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    {{ input("meta_mensual", "Meta", type="number") }}
+    {{ input("valor_obtenido", "Valor obtenido", type="number") }}
+    <div class="flex items-end">{{ button("Guardar") }}</div>
+</form>
+{% endcall %}
+
+<div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-900/5">
+        <div class="mb-4 text-sm font-semibold text-slate-700">Meta vs valor registrado</div>
+        <div class="h-72">
+            <canvas id="metaValorChart"></canvas>
+        </div>
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-900/5">
+        <div class="mb-4 flex items-center justify-between">
+            <div class="text-sm font-semibold text-slate-700">Cumplimiento mensual</div>
+            <div class="text-xs text-slate-500">Valor / meta</div>
+        </div>
+        <div class="h-72">
+            <canvas id="cumplimientoChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-950">Detalle mensual editable</h2>
+<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+                <th class="px-4 py-3 text-left font-bold">Mes</th>
+                <th class="px-4 py-3 text-right font-bold">Meta</th>
+                <th class="px-4 py-3 text-right font-bold">Valor obtenido</th>
+                <th class="px-4 py-3 text-right font-bold">Accion</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+            {% for r in registros %}
+            <tr class="transition hover:bg-slate-50/80">
+                <td class="px-4 py-3 font-semibold text-slate-900">{{ r.mes }}</td>
+                <td class="px-4 py-3 text-right">
+                    <form id="mes-{{ r.mes_id }}" method="post">
+                        <input type="hidden" name="indicador_id" value="{{ indicador_id }}">
+                        <input type="hidden" name="gestion_id" value="{{ gestion_id }}">
+                        <input type="hidden" name="mes_id" value="{{ r.mes_id }}">
+                    </form>
+                    <input form="mes-{{ r.mes_id }}" name="meta_mensual" type="number" step="any"
+                           value="{{ '%.2f'|format(r.meta_mensual) if r.meta_mensual is not none else '' }}"
+                           class="w-28 rounded-xl border border-slate-300 bg-white px-3 py-2 text-right text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <input form="mes-{{ r.mes_id }}" name="valor_obtenido" type="number" step="any"
+                           value="{{ '%.2f'|format(r.valor_obtenido) if r.valor_obtenido is not none else '' }}"
+                           class="w-28 rounded-xl border border-slate-300 bg-white px-3 py-2 text-right text-sm font-semibold text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <button form="mes-{{ r.mes_id }}" class="inline-flex min-h-9 items-center justify-center rounded-xl bg-brand-700 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+                        Guardar
+                    </button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="px-4 py-10 text-center text-sm font-medium text-slate-500">No hay datos mensuales para mostrar.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const labels = {{ chart_labels | tojson }};
+const metas = {{ chart_metas | tojson }};
+const valores = {{ chart_valores | tojson }};
+const metaAnual = {{ chart_meta_anual | tojson }};
+const cumplimiento = {{ chart_cumplimiento | tojson }};
+
+new Chart(document.getElementById("metaValorChart"), {
+    type: "line",
+    data: {
+        labels,
+        datasets: [
+            { label: "Meta", data: metas, borderColor: "#e65100", backgroundColor: "#fed7aa", tension: 0.25 },
+            { label: "Valor obtenido", data: valores, borderColor: "#1d4ed8", backgroundColor: "#dbeafe", tension: 0.25 },
+            { label: "Meta anual", data: metaAnual, borderColor: "#64748b", borderDash: [6, 6], pointRadius: 0, tension: 0 }
+        ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+});
+
+new Chart(document.getElementById("cumplimientoChart"), {
+    type: "bar",
+    data: {
+        labels,
+        datasets: [{
+            label: "Cumplimiento",
+            data: cumplimiento,
+            backgroundColor: cumplimiento.map((value) => {
+                if (value === null) return "#cbd5e1";
+                if (value < 75) return "#ef4444";
+                if (value < 95) return "#f59e0b";
+                return "#10b981";
+            })
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, max: 120, ticks: { callback: (value) => value + "%" } } },
+        plugins: { tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.parsed.y ?? 0}%` } } }
+    }
+});
+</script>
+{% endblock %}

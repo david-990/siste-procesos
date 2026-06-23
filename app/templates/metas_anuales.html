@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "components.html" import page_header, panel, select, input, button %}
+
+{% block title %}Meta Anual{% endblock %}
+
+{% block content %}
+{{ page_header("Meta Anual", "Registra la meta anual por indicador y gestion.") }}
+
+{% call panel() %}
+<form method="post" class="grid grid-cols-1 gap-4 lg:grid-cols-4">
+    {{ select("indicador_id", "Indicador", indicadores, text="codigo", width="lg:col-span-1") }}
+    {{ select("gestion_id", "Gestion", gestiones) }}
+    {{ input("meta_anual", "Meta anual", type="number") }}
+    <div class="flex items-end">{{ button("Guardar meta anual") }}</div>
+</form>
+{% endcall %}
+
+<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-950">Metas anuales registradas</h2>
+<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+                <th class="px-4 py-3 text-left font-bold">Codigo</th>
+                <th class="px-4 py-3 text-left font-bold">Indicador</th>
+                <th class="px-4 py-3 text-center font-bold">Gestion</th>
+                <th class="px-4 py-3 text-right font-bold">Meta anual</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+            {% for row in metas_anuales %}
+            <tr class="transition hover:bg-slate-50/80">
+                <td class="px-4 py-3 font-semibold text-brand-700">{{ row.codigo }}</td>
+                <td class="px-4 py-3 text-slate-700">{{ row.nombre_indicador }}</td>
+                <td class="px-4 py-3 text-center">{{ row.gestion }}</td>
+                <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ "%.2f"|format(row.meta_anual) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="px-4 py-10 text-center text-sm font-medium text-slate-500">No hay metas anuales registradas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

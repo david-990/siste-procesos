@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+  {% from "components.html" import icon %}
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>{% block title %}sistemas de procesos{% endblock %}</title>
+    <style>
+      body {
+        font-family: Cambria, Georgia, serif;
+      }
+    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: "#eef6ff",
+                100: "#d9ebff",
+                200: "#b8dcff",
+                600: "#2563eb",
+                700: "#1d4ed8",
+                800: "#1e40af",
+                900: "#172554",
+              },
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="bg-slate-100 text-slate-800 antialiased">
+    <div class="min-h-screen">
+      <aside
+        class="fixed inset-x-0 top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:inset-y-0 md:left-0 md:w-72 md:border-b-0 md:border-r md:px-5 md:py-6"
+      >
+        <div class="flex items-center gap-3 md:mb-1">
+          <div
+            class="grid h-10 w-10 place-items-center rounded-xl bg-brand-700 text-white shadow-md shadow-brand-700/20"
+          >
+            {{ icon("logo", "h-5 w-5") }}
+          </div>
+          <div>
+            <div class="text-lg font-bold tracking-tight text-brand-900">
+              SIST. PROCESOS
+            </div>
+            <div class="hidden text-xs font-medium text-slate-500 md:block">
+              Gestion de Indicadores
+            </div>
+          </div>
+        </div>
+
+        <nav
+          class="mt-3 flex gap-2 overflow-x-auto pb-1 md:mt-8 md:block md:space-y-1 md:overflow-visible md:pb-0"
+        >
+          {% set items = [ ("panel", "Panel", "panel"), ("indicadores",
+          "Indicadores", "indicadores"), ("acciones", "Acciones", "acciones"),
+          ("lineas_base", "Línea Base", "lineas_base"), ("metas_anuales", "Meta
+          Anual", "metas_anuales"), ("metas_valores", "Metas y Valores",
+          "metas_valores"), ("resumen", "Resumen", "resumen"), ("avances",
+          "Avances", "avances") ] %} {% for endpoint, label, icon_name in items
+          %}
+          <a
+            href="{{ url_for('main.' ~ endpoint) }}"
+            class="group flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold outline-none transition duration-150 focus-visible:ring-2 focus-visible:ring-brand-200 {% if request.endpoint == 'main.' ~ endpoint %} bg-brand-700 text-white shadow-md shadow-brand-700/20 {% else %} text-slate-600 hover:bg-slate-100 hover:text-slate-950 active:bg-slate-200 {% endif %}"
+          >
+            <span
+              class="grid h-7 w-7 place-items-center rounded-xl {% if request.endpoint == 'main.' ~ endpoint %}bg-white/15{% else %}bg-slate-100 text-slate-500 group-hover:bg-white{% endif %}"
+              >{{ icon(icon_name, "h-4 w-4") }}</span
+            >
+            <span>{{ label }}</span>
+          </a>
+          {% endfor %}
+        </nav>
+
+        <div
+          class="absolute bottom-5 left-5 right-5 hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center text-xs font-medium text-slate-500 md:block"
+        >
+          v1.0 · Flask + MySQL
+        </div>
+      </aside>
+
+      <main class="px-4 pb-10 pt-32 sm:px-6 md:ml-72 md:p-8 lg:p-10">
+        {% with messages = get_flashed_messages() %} {% if messages %}
+        <div
+          class="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 shadow-md shadow-emerald-900/5"
+        >
+          <span
+            class="mt-0.5 grid h-5 w-5 place-items-center rounded-full bg-emerald-600 text-white"
+            >{{ icon("check", "h-3.5 w-3.5") }}</span
+          >
+          <span>{{ messages[0] }}</span>
+        </div>
+        {% endif %} {% endwith %}
+
+        <div class="mx-auto max-w-7xl">{% block content %}{% endblock %}</div>
+      </main>
+    </div>
+  </body>
+</html>

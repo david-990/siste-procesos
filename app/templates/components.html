@@ -1,0 +1,112 @@
+{% macro page_header(title, subtitle) %}
+    <div class="mb-6 flex flex-col gap-2">
+        <div class="inline-flex w-fit items-center rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">Sistema de seguimiento</div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">{{ title }}</h1>
+        <p class="max-w-3xl text-sm leading-6 text-slate-600">{{ subtitle }}</p>
+    </div>
+{% endmacro %}
+
+{% macro panel() %}
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-900/5 md:p-6">
+        {{ caller() }}
+    </section>
+{% endmacro %}
+
+{% macro input(name, label, value='', type='text', width='') %}
+    <label class="block {{ width }}">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ label }}</span>
+        <input name="{{ name }}" type="{{ type }}" value="{{ value }}"
+               {% if type == 'number' %}step="any"{% endif %}
+               class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 invalid:border-red-300 invalid:focus:ring-red-100">
+    </label>
+{% endmacro %}
+
+{% macro select(name, label, options, selected=None, key='id', text='nombre', width='') %}
+    <label class="block {{ width }}">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ label }}</span>
+        <select name="{{ name }}"
+                class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100">
+            {% for option in options %}
+                <option value="{{ option[key] }}" {% if option[key]|string == selected|string %}selected{% endif %}>
+                    {{ option[text] }}
+                </option>
+            {% endfor %}
+        </select>
+    </label>
+{% endmacro %}
+
+{% macro button(label='Guardar') %}
+    <button class="inline-flex min-h-10 items-center justify-center rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
+        {{ label }}
+    </button>
+{% endmacro %}
+
+{% macro icon(name, class='h-5 w-5') %}
+    {% if name == 'logo' %}
+        <svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 5h14"></path>
+            <path d="M7 5l5 7-5 7h10"></path>
+        </svg>
+    {% elif name == 'panel' %}
+        <svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+            <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+            <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+        </svg>
+    {% elif name == 'indicadores' %}
+        <svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 13V7a2 2 0 0 0-2-2h-3"></path>
+            <path d="M4 17V7a2 2 0 0 1 2-2h3"></path>
+            <path d="M9 5a3 3 0 0 1 6 0"></path>
+            <path d="M8 21h8"></path>
+            <path d="M12 17v4"></path>
+            <path d="M8 13l3 3 5-7"></path>
+        </svg>
+    {% elif name == 'acciones' %}
+        <svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+    {% elif name == 'lineas_base' %}
+        <svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 19h16"></path>
+            <path d="M6 16V8"></path>
+            <path d="M12 16V5"></path>
+            <path d="M18 16v-6"></path>
+        </svg>
+    {% elif name == 'metas_valores' %}
+        <svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20V10"></path>
+            <path d="M18 20V4"></path>
+            <path d="M6 20v-4"></path>
+        </svg>
+    {% elif name == 'metas_anuales' %}
+        <svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <circle cx="12" cy="12" r="5"></circle>
+            <circle cx="12" cy="12" r="1"></circle>
+        </svg>
+    {% elif name == 'resumen' %}
+        <svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 19V5"></path>
+            <path d="M4 19h16"></path>
+            <path d="m7 14 4-4 3 3 5-6"></path>
+        </svg>
+    {% elif name == 'avances' %}
+        <svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2v4"></path>
+            <path d="M12 18v4"></path>
+            <path d="M4.93 4.93 7.76 7.76"></path>
+            <path d="M16.24 16.24 19.07 19.07"></path>
+            <path d="M2 12h4"></path>
+            <path d="M18 12h4"></path>
+            <path d="M4.93 19.07 7.76 16.24"></path>
+            <path d="M16.24 7.76 19.07 4.93"></path>
+        </svg>
+    {% elif name == 'check' %}
+        <svg class="{{ class }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m20 6-11 11-5-5"></path>
+        </svg>
+    {% endif %}
+{% endmacro %}
