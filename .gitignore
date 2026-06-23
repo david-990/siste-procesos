@@ -11,6 +11,8 @@ env/
 # Environment files
 .env
 .env.*
+!.env.example
+
 
 # Logs and temporary files
 *.log
