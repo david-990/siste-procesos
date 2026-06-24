@@ -4,13 +4,14 @@
 {% block title %}Panel{% endblock %}
 
 {% block content %}
-{{ page_header("Panel de seguimiento", "Monitoreo por gestion y periodo con datos registrados en la base.") }}
+{{ page_header("Panel de seguimiento", "Monitoreo por gestión y periodo con datos registrados en la base.") }}
 
+{# ── Filtros ─────────────────────────────────────────────────────── #}
 {% call panel() %}
-<form method="get" class="grid grid-cols-1 gap-4 md:grid-cols-4">
+<form method="get" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <label class="block">
-        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Gestion</span>
-        <select name="gestion_id" onchange="this.form.submit()" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Gestión</span>
+        <select name="gestion_id" onchange="this.form.submit()" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
             {% for gestion in gestiones %}
                 <option value="{{ gestion.id }}" {% if gestion.id == gestion_id %}selected{% endif %}>{{ gestion.nombre }}</option>
             {% endfor %}
@@ -18,79 +19,108 @@
     </label>
     <label class="block">
         <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Periodo</span>
-        <select name="periodo_id" onchange="this.form.submit()" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+        <select name="periodo_id" onchange="this.form.submit()" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
             {% for item in periodos %}
                 <option value="{{ item.id }}" {% if item.id == periodo_id %}selected{% endif %}>{{ item.nombre }}</option>
             {% endfor %}
         </select>
     </label>
-    <div class="rounded-xl border {{ alerta_cierre.clase }} px-4 py-3 shadow-sm md:col-span-2">
+    <div class="rounded-lg border {{ alerta_cierre.clase }} px-4 py-3 sm:col-span-2">
         <div class="text-xs font-semibold">Cierre del periodo</div>
-        <div class="mt-1 text-sm font-bold">{{ alerta_cierre.texto }} · {{ alerta_cierre.fecha.strftime("%d/%m/%Y") }}</div>
+        <div class="mt-0.5 text-sm font-bold">{{ alerta_cierre.texto }} · {{ alerta_cierre.fecha.strftime("%d/%m/%Y") }}</div>
     </div>
 </form>
 {% endcall %}
 
-<div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-5">
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-900/5">
-        <div class="text-xs font-semibold text-slate-500">Indicadores</div>
-        <div class="mt-1 text-2xl font-bold text-slate-900">{{ total_indicadores }}</div>
+{# ── KPI cards ───────────────────────────────────────────────────── #}
+<div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-500">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            </span>
+            <div class="text-xs font-semibold text-slate-500">Total</div>
+        </div>
+        <div class="mt-2 text-2xl font-bold text-slate-900">{{ total_indicadores }}</div>
+        <div class="mt-0.5 text-xs text-slate-400">indicadores</div>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-900/5">
-        <div class="text-xs font-semibold text-slate-500">Evaluados</div>
-        <div class="mt-1 text-2xl font-bold text-brand-700">{{ evaluados }}</div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-50 text-brand-600">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <div class="text-xs font-semibold text-slate-500">Evaluados</div>
+        </div>
+        <div class="mt-2 text-2xl font-bold text-brand-700">{{ evaluados }}</div>
+        <div class="mt-0.5 text-xs text-slate-400">con avance calculado</div>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-900/5">
-        <div class="text-xs font-semibold text-slate-500">Promedio</div>
-        <div class="mt-1 text-2xl font-bold text-brand-700">{{ "%.1f%%"|format(avance_promedio) if avance_promedio is not none else "—" }}</div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-50 text-brand-600">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+            </span>
+            <div class="text-xs font-semibold text-slate-500">Promedio</div>
+        </div>
+        <div class="mt-2 text-2xl font-bold text-brand-700">{{ "%.1f%%"|format(avance_promedio) if avance_promedio is not none else "—" }}</div>
+        <div class="mt-0.5 text-xs text-slate-400">avance Tipo I</div>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-900/5">
-        <div class="text-xs font-semibold text-slate-500">Concluidos</div>
-        <div class="mt-1 text-2xl font-bold text-emerald-700">{{ concluidos }}</div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+            <div class="text-xs font-semibold text-slate-500">Concluidos</div>
+        </div>
+        <div class="mt-2 text-2xl font-bold text-emerald-700">{{ concluidos }}</div>
+        <div class="mt-0.5 text-xs text-slate-400">≥ 95% avance</div>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-900/5">
-        <div class="text-xs font-semibold text-slate-500">Por atender</div>
-        <div class="mt-1 text-2xl font-bold text-red-600">{{ alertas_activas + sin_dato }}</div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm col-span-2 sm:col-span-1">
+        <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-500">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+            <div class="text-xs font-semibold text-slate-500">Por atender</div>
+        </div>
+        <div class="mt-2 text-2xl font-bold text-red-600">{{ alertas_activas + sin_dato }}</div>
+        <div class="mt-0.5 text-xs text-slate-400">requieren seguimiento</div>
     </div>
 </div>
 
-<div class="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-900/5">
-    <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <div class="text-base font-semibold text-slate-950">Indicadores pendientes de cierre</div>
-            <div class="text-sm text-slate-500">Prioridad de seguimiento: no concluidos y dias restantes del periodo.</div>
-        </div>
-        <span class="inline-flex w-fit rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
+{# ── Indicadores pendientes ──────────────────────────────────────── #}
+<div class="mt-8">
+    <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-base font-semibold text-slate-900">Indicadores pendientes de cierre</h2>
+        <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
             {{ pendientes|length }} por atender
         </span>
     </div>
-    <div class="overflow-x-auto rounded-xl border border-slate-200">
+    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                    <th class="px-4 py-3 text-left font-bold">Indicador</th>
-                    <th class="px-4 py-3 text-right font-bold">Avance</th>
-                    <th class="px-4 py-3 text-left font-bold">Estado</th>
-                    <th class="px-4 py-3 text-left font-bold">Cierre</th>
+                    <th class="px-4 py-3 text-left font-semibold">Indicador</th>
+                    <th class="px-4 py-3 text-right font-semibold">Avance</th>
+                    <th class="px-4 py-3 text-left font-semibold">Estado</th>
+                    <th class="px-4 py-3 text-left font-semibold">Cierre</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-200">
                 {% for fila in pendientes %}
-                <tr class="transition hover:bg-slate-50/80">
+                <tr class="hover:bg-slate-50">
                     <td class="px-4 py-3">
                         <div class="font-semibold text-brand-700">{{ fila.codigo }}</div>
-                        <div class="max-w-xl text-xs text-slate-500">{{ fila.nombre_indicador }}</div>
+                        <div class="max-w-xl text-xs text-slate-500 leading-relaxed">{{ fila.nombre_indicador }}</div>
                     </td>
-                    <td class="px-4 py-3 text-right font-semibold">
+                    <td class="px-4 py-3 text-right font-semibold tabular-nums">
                         {{ "%.2f%%"|format(fila.avance_tipo_1_vista) if fila.avance_tipo_1_vista is not none else "—" }}
                     </td>
                     <td class="px-4 py-3">
-                        <span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold {{ fila.estado.clase }}">
+                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.estado.clase }}">
                             {{ fila.estado.nombre }}
                         </span>
                     </td>
                     <td class="px-4 py-3">
-                        <span class="inline-flex rounded-full border px-2 py-1 text-xs font-semibold {{ fila.alerta.clase }}">
+                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.alerta.clase }}">
                             {{ fila.alerta.texto }}
                         </span>
                     </td>
@@ -98,7 +128,7 @@
                 {% else %}
                 <tr>
                     <td colspan="4" class="px-4 py-10 text-center text-sm font-medium text-emerald-700">
-                        Todos los indicadores del periodo estan concluidos.
+                        ✓ Todos los indicadores del periodo están concluidos.
                     </td>
                 </tr>
                 {% endfor %}
@@ -107,104 +137,111 @@
     </div>
 </div>
 
-<div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-5">
-    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-900/5 lg:col-span-3">
-        <div class="mb-4 flex items-center justify-between">
-            <div class="text-sm font-semibold text-slate-700">Avance Tipo I por indicador</div>
-            <div class="text-xs text-slate-500">{{ periodo.nombre }}</div>
+{# ── Gráficos: avance y distribución ────────────────────────────── #}
+<div class="mt-8">
+    <h2 class="mb-3 text-base font-semibold text-slate-900">Distribución y avance por indicador</h2>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-3">
+            <div class="mb-1 text-sm font-semibold text-slate-700">Avance Tipo I por indicador</div>
+            <div class="mb-4 text-xs text-slate-400">{{ periodo.nombre }}</div>
+            {% if bar_values %}
+                <div class="h-72"><canvas id="barChart"></canvas></div>
+            {% else %}
+                <div class="grid h-72 place-items-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">Sin avances calculados para este periodo.</div>
+            {% endif %}
         </div>
-        {% if bar_values %}
-            <div class="h-72"><canvas id="barChart"></canvas></div>
-        {% else %}
-            <div class="grid h-72 place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm font-medium text-slate-500">Sin avances calculados para este periodo.</div>
-        {% endif %}
-    </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-900/5 lg:col-span-2">
-        <div class="mb-4 text-sm font-semibold text-slate-700">Estado de indicadores</div>
-        <div class="h-72"><canvas id="donutChart"></canvas></div>
+        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+            <div class="mb-4 text-sm font-semibold text-slate-700">Estado de indicadores</div>
+            <div class="h-72"><canvas id="donutChart"></canvas></div>
+        </div>
     </div>
 </div>
 
-<div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-5">
-    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-900/5 lg:col-span-3">
-        <div class="mb-4 text-sm font-semibold text-slate-700">Promedio mensual: meta vs valor</div>
+{# ── Gráficos: evolución y progreso ─────────────────────────────── #}
+<div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-5">
+    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-3">
+        <div class="mb-4 text-sm font-semibold text-slate-700">Promedio mensual: meta vs valor obtenido</div>
         <div class="h-72"><canvas id="lineChart"></canvas></div>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-900/5 lg:col-span-2">
-        <div class="text-sm font-semibold text-slate-700">Progreso general</div>
-        <div class="mt-8 text-center text-3xl font-bold text-brand-700">
+    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+        <div class="mb-1 text-sm font-semibold text-slate-700">Progreso general del periodo</div>
+        <div class="mt-6 text-center text-4xl font-bold text-brand-700">
             {{ "%.1f%%"|format(avance_promedio) if avance_promedio is not none else "—" }}
         </div>
-        <div class="mt-5 h-4 overflow-hidden rounded-full bg-slate-100">
-            <div class="h-4 rounded-full bg-brand-700" style="width: {{ [avance_promedio or 0, 100]|min }}%"></div>
+        <div class="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
+            <div class="h-3 rounded-full bg-brand-700 transition-all" style="width: {{ [avance_promedio or 0, 100]|min }}%"></div>
         </div>
-        <div class="mt-5 grid grid-cols-3 overflow-hidden rounded-xl border border-slate-200 text-center text-xs font-bold">
-            <div class="bg-red-100 px-2 py-2 text-red-700">Critico<br>0-75%</div>
-            <div class="bg-amber-100 px-2 py-2 text-amber-700">Seguimiento<br>75-95%</div>
-            <div class="bg-emerald-100 px-2 py-2 text-emerald-700">Concluido<br>95%+</div>
+        <div class="mt-5 grid grid-cols-3 overflow-hidden rounded-lg border border-slate-200 text-center text-xs font-semibold">
+            <div class="bg-red-50 px-2 py-2 text-red-700">Crítico<br><span class="font-normal text-slate-400">0 – 75%</span></div>
+            <div class="bg-amber-50 px-2 py-2 text-amber-700 border-x border-slate-200">Seguimiento<br><span class="font-normal text-slate-400">75 – 95%</span></div>
+            <div class="bg-emerald-50 px-2 py-2 text-emerald-700">Concluido<br><span class="font-normal text-slate-400">≥ 95%</span></div>
         </div>
     </div>
 </div>
 
-<div class="mt-5 rounded-xl border border-slate-200 bg-white p-5 shadow-md shadow-slate-900/5">
-    <div class="mb-4 flex items-center justify-between">
-        <div class="text-sm font-semibold text-slate-700">Comparativo global del periodo</div>
-        <div class="text-xs text-slate-500">Totales de metas y valor obtenido</div>
+{# ── Gráfico comparativo ─────────────────────────────────────────── #}
+<div class="mt-6">
+    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="mb-1 text-sm font-semibold text-slate-700">Comparativo global del periodo</div>
+        <div class="mb-4 text-xs text-slate-400">Totales acumulados: logro esperado, meta anual y valor obtenido</div>
+        {% if comparison_values %}
+            <div class="h-80"><canvas id="comparisonChart"></canvas></div>
+        {% else %}
+            <div class="grid h-40 place-items-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">Sin datos para comparar metas y valor obtenido.</div>
+        {% endif %}
     </div>
-    {% if comparison_values %}
-        <div class="h-80"><canvas id="comparisonChart"></canvas></div>
-    {% else %}
-        <div class="grid h-40 place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm font-medium text-slate-500">Sin datos para comparar metas y valor obtenido.</div>
-    {% endif %}
 </div>
 
-<h2 class="mt-7 mb-3 text-base font-semibold text-slate-900">Seguimiento del periodo</h2>
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5">
-    <table class="min-w-full divide-y divide-slate-200 text-sm">
-        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr class="transition hover:bg-slate-50/80">
-                <th class="px-4 py-3 text-left font-bold">Indicador</th>
-                <th class="px-4 py-3 text-right font-bold">Logro esperado</th>
-                <th class="px-4 py-3 text-right font-bold">Meta anual</th>
-                <th class="px-4 py-3 text-right font-bold">Valor obtenido</th>
-                <th class="px-4 py-3 text-right font-bold">Avance Tipo I</th>
-                <th class="px-4 py-3 text-left font-bold">Estado</th>
-                <th class="px-4 py-3 text-left font-bold">Alerta</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-200">
-            {% for fila in seguimiento %}
-            <tr>
-                <td class="px-4 py-3">
-                    <div class="font-semibold text-brand-700">{{ fila.codigo }}</div>
-                    <div class="max-w-xl text-xs text-slate-500">{{ fila.nombre_indicador }}</div>
-                </td>
-                <td class="px-4 py-3 text-right">{{ "%.2f"|format(fila.meta_cierre) if fila.meta_cierre is not none else "—" }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.2f"|format(fila.meta_anual) if fila.meta_anual is not none else "—" }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.2f"|format(fila.valor_cierre) if fila.valor_cierre is not none else "—" }}</td>
-                <td class="px-4 py-3 text-right font-semibold">
-                    {{ "%.2f%%"|format(fila.avance_tipo_1_vista) if fila.avance_tipo_1_vista is not none else "—" }}
-                </td>
-                <td class="px-4 py-3">
-                    <span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold {{ fila.estado.clase }}">
-                        {{ fila.estado.nombre }}
-                    </span>
-                </td>
-                <td class="px-4 py-3">
-                    <span class="inline-flex rounded-full border px-2 py-1 text-xs font-semibold {{ fila.alerta.clase }}">
-                        {{ fila.alerta.texto }}
-                    </span>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="7" class="px-4 py-10 text-center text-sm font-medium text-slate-500">
-                    No hay indicadores activos para este periodo.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{# ── Tabla de seguimiento completo ───────────────────────────────── #}
+<div class="mt-8">
+    <h2 class="mb-3 text-base font-semibold text-slate-900">Seguimiento completo del periodo</h2>
+    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-4 py-3 text-left font-semibold">Indicador</th>
+                    <th class="px-4 py-3 text-right font-semibold">Logro esperado</th>
+                    <th class="px-4 py-3 text-right font-semibold">Meta anual</th>
+                    <th class="px-4 py-3 text-right font-semibold">Valor obtenido</th>
+                    <th class="px-4 py-3 text-right font-semibold">Avance Tipo I</th>
+                    <th class="px-4 py-3 text-left font-semibold">Estado</th>
+                    <th class="px-4 py-3 text-left font-semibold">Alerta</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for fila in seguimiento %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3">
+                        <div class="font-semibold text-brand-700">{{ fila.codigo }}</div>
+                        <div class="max-w-xl text-xs text-slate-500 leading-relaxed">{{ fila.nombre_indicador }}</div>
+                    </td>
+                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.meta_cierre) if fila.meta_cierre is not none else "—" }}</td>
+                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.meta_anual) if fila.meta_anual is not none else "—" }}</td>
+                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.valor_cierre) if fila.valor_cierre is not none else "—" }}</td>
+                    <td class="px-4 py-3 text-right font-semibold tabular-nums">
+                        {{ "%.2f%%"|format(fila.avance_tipo_1_vista) if fila.avance_tipo_1_vista is not none else "—" }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.estado.clase }}">
+                            {{ fila.estado.nombre }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.alerta.clase }}">
+                            {{ fila.alerta.texto }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-400">
+                        No hay indicadores activos para este periodo.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -219,14 +256,18 @@ const lineMetaAnualValues = {{ line_meta_anual_values | tojson }};
 const lineValorValues = {{ line_valor_values | tojson }};
 const donutValues = {{ donut_values | tojson }};
 
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#64748b';
+
 if (barValues.length) {
     new Chart(document.getElementById("barChart"), {
         type: "bar",
         data: {
             labels: barLabels,
-            datasets: [{ label: "Avance Tipo I", data: barValues, backgroundColor: "#1d4ed8" }]
+            datasets: [{ label: "Avance Tipo I", data: barValues, backgroundColor: "#1d4ed8", borderRadius: 4 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, grid: { color: '#f1f5f9' } } } }
     });
 }
 
@@ -235,13 +276,9 @@ if (comparisonValues.length) {
         type: "bar",
         data: {
             labels: comparisonLabels,
-            datasets: [{ label: "Total", data: comparisonValues, backgroundColor: ["#e65100", "#64748b", "#1d4ed8"] }]
+            datasets: [{ label: "Total", data: comparisonValues, backgroundColor: ["#f97316", "#94a3b8", "#1d4ed8"], borderRadius: 4 }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } } } }
     });
 }
 
@@ -250,21 +287,21 @@ new Chart(document.getElementById("lineChart"), {
     data: {
         labels: lineLabels,
         datasets: [
-            { label: "Meta promedio", data: lineMetaValues, borderColor: "#e65100", backgroundColor: "#fed7aa", tension: 0.25 },
-            { label: "Valor promedio", data: lineValorValues, borderColor: "#1d4ed8", backgroundColor: "#dbeafe", tension: 0.25 },
-            { label: "Meta anual promedio", data: lineMetaAnualValues, borderColor: "#64748b", borderDash: [6, 6], pointRadius: 0, tension: 0 }
+            { label: "Meta promedio", data: lineMetaValues, borderColor: "#f97316", backgroundColor: "#fed7aa40", tension: 0.25, borderWidth: 2 },
+            { label: "Valor promedio", data: lineValorValues, borderColor: "#1d4ed8", backgroundColor: "#dbeafe40", tension: 0.25, borderWidth: 2 },
+            { label: "Meta anual promedio", data: lineMetaAnualValues, borderColor: "#94a3b8", borderDash: [6, 4], pointRadius: 0, tension: 0, borderWidth: 1.5 }
         ]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } } } }
 });
 
 new Chart(document.getElementById("donutChart"), {
     type: "doughnut",
     data: {
-        labels: ["Concluido", "En seguimiento", "Critico", "Sin dato"],
-        datasets: [{ data: donutValues, backgroundColor: ["#10b981", "#f59e0b", "#ef4444", "#cbd5e1"] }]
+        labels: ["Concluido", "En seguimiento", "Crítico", "Sin dato"],
+        datasets: [{ data: donutValues, backgroundColor: ["#10b981", "#f59e0b", "#ef4444", "#cbd5e1"], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: false }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 16 } } } }
 });
 </script>
 {% endblock %}

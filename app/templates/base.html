@@ -3,15 +3,15 @@
   {% from "components.html" import icon %}
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
-    <title>{% block title %}sistemas de procesos{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Sistema de seguimiento y gestión de indicadores de procesos." />
+    <title>{% block title %}Sistema de Procesos{% endblock %} · Gestión de Indicadores</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-      body {
-        font-family: Cambria, Georgia, serif;
-      }
+      body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+      #sidebar { transition: transform 0.2s ease; }
     </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -29,77 +29,134 @@
                 900: "#172554",
               },
             },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+            },
           },
         },
       };
     </script>
   </head>
   <body class="bg-slate-100 text-slate-800 antialiased">
+
+    {# Overlay para cerrar sidebar en móvil #}
+    <div id="sidebar-overlay" class="fixed inset-0 z-20 bg-black/40 hidden md:hidden" onclick="toggleSidebar()"></div>
+
     <div class="min-h-screen">
       <aside
-        class="fixed inset-x-0 top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:inset-y-0 md:left-0 md:w-72 md:border-b-0 md:border-r md:px-5 md:py-6"
+        id="sidebar"
+        class="fixed inset-y-0 left-0 z-30 w-72 -translate-x-full border-r border-slate-200 bg-white shadow-xl md:translate-x-0 md:shadow-none"
       >
-        <div class="flex items-center gap-3 md:mb-1">
-          <div
-            class="grid h-10 w-10 place-items-center rounded-xl bg-brand-700 text-white shadow-md shadow-brand-700/20"
-          >
-            {{ icon("logo", "h-5 w-5") }}
-          </div>
-          <div>
-            <div class="text-lg font-bold tracking-tight text-brand-900">
-              SIST. PROCESOS
+        <div class="flex h-full flex-col px-5 py-6">
+          {# Logo y nombre #}
+          <div class="flex items-center gap-3 mb-8">
+            <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-700 text-white shadow-md shadow-brand-700/20">
+              {{ icon("logo", "h-5 w-5") }}
             </div>
-            <div class="hidden text-xs font-medium text-slate-500 md:block">
-              Gestion de Indicadores
+            <div>
+              <div class="text-sm font-bold tracking-tight text-brand-900 uppercase leading-tight">
+                Sist. Procesos
+              </div>
+              <div class="text-xs font-medium text-slate-400 leading-tight">
+                Gestión de Indicadores
+              </div>
             </div>
           </div>
-        </div>
 
-        <nav
-          class="mt-3 flex gap-2 overflow-x-auto pb-1 md:mt-8 md:block md:space-y-1 md:overflow-visible md:pb-0"
-        >
-          {% set items = [ ("panel", "Panel", "panel"), ("indicadores",
-          "Indicadores", "indicadores"), ("acciones", "Acciones", "acciones"),
-          ("lineas_base", "Línea Base", "lineas_base"), ("metas_anuales", "Meta
-          Anual", "metas_anuales"), ("metas_valores", "Metas y Valores",
-          "metas_valores"), ("resumen", "Resumen", "resumen"), ("avances",
-          "Avances", "avances") ] %} {% for endpoint, label, icon_name in items
-          %}
-          <a
-            href="{{ url_for('main.' ~ endpoint) }}"
-            class="group flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold outline-none transition duration-150 focus-visible:ring-2 focus-visible:ring-brand-200 {% if request.endpoint == 'main.' ~ endpoint %} bg-brand-700 text-white shadow-md shadow-brand-700/20 {% else %} text-slate-600 hover:bg-slate-100 hover:text-slate-950 active:bg-slate-200 {% endif %}"
-          >
-            <span
-              class="grid h-7 w-7 place-items-center rounded-xl {% if request.endpoint == 'main.' ~ endpoint %}bg-white/15{% else %}bg-slate-100 text-slate-500 group-hover:bg-white{% endif %}"
-              >{{ icon(icon_name, "h-4 w-4") }}</span
-            >
-            <span>{{ label }}</span>
-          </a>
-          {% endfor %}
-        </nav>
+          {# Navegación #}
+          <nav class="flex-1 space-y-0.5">
+            {% set sections = [
+              ("Monitoreo", [
+                ("panel", "Panel", "panel"),
+                ("resumen", "Resumen", "resumen"),
+                ("avances", "Avances", "avances"),
+              ]),
+              ("Configuración", [
+                ("indicadores", "Indicadores", "indicadores"),
+                ("acciones", "Acciones", "acciones"),
+                ("lineas_base", "Línea Base", "lineas_base"),
+                ("metas_anuales", "Meta Anual", "metas_anuales"),
+                ("metas_valores", "Metas y Valores", "metas_valores"),
+              ]),
+            ] %}
+            {% for section_label, items in sections %}
+              <div class="{% if not loop.first %}mt-5{% endif %}">
+                <div class="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                  {{ section_label }}
+                </div>
+                {% for endpoint, label, icon_name in items %}
+                  <a
+                    href="{{ url_for('main.' ~ endpoint) }}"
+                    onclick="closeSidebarOnMobile()"
+                    class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition duration-150 focus-visible:ring-2 focus-visible:ring-brand-200 {% if request.endpoint == 'main.' ~ endpoint %} bg-brand-700 text-white shadow-sm {% else %} text-slate-600 hover:bg-slate-100 hover:text-slate-900 {% endif %}"
+                  >
+                    <span class="grid h-6 w-6 shrink-0 place-items-center rounded-md {% if request.endpoint == 'main.' ~ endpoint %}bg-white/15 text-white{% else %}bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-slate-600{% endif %}">
+                      {{ icon(icon_name, "h-3.5 w-3.5") }}
+                    </span>
+                    <span>{{ label }}</span>
+                  </a>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </nav>
 
-        <div
-          class="absolute bottom-5 left-5 right-5 hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center text-xs font-medium text-slate-500 md:block"
-        >
-          v1.0 · Flask + MySQL
+          {# Footer del sidebar #}
+          <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-xs text-slate-400">
+            v1.0 · Flask + MySQL
+          </div>
         </div>
       </aside>
 
-      <main class="px-4 pb-10 pt-32 sm:px-6 md:ml-72 md:p-8 lg:p-10">
-        {% with messages = get_flashed_messages() %} {% if messages %}
-        <div
-          class="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 shadow-md shadow-emerald-900/5"
+      {# Header móvil #}
+      <header class="fixed inset-x-0 top-0 z-20 flex h-14 items-center border-b border-slate-200 bg-white px-4 shadow-sm md:hidden">
+        <button
+          id="hamburger"
+          onclick="toggleSidebar()"
+          class="mr-3 grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200"
+          aria-label="Abrir menú"
+          aria-expanded="false"
         >
-          <span
-            class="mt-0.5 grid h-5 w-5 place-items-center rounded-full bg-emerald-600 text-white"
-            >{{ icon("check", "h-3.5 w-3.5") }}</span
-          >
-          <span>{{ messages[0] }}</span>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+          </svg>
+        </button>
+        <div class="flex items-center gap-2">
+          <div class="grid h-7 w-7 place-items-center rounded-lg bg-brand-700 text-white">
+            {{ icon("logo", "h-4 w-4") }}
+          </div>
+          <span class="text-sm font-bold text-brand-900 uppercase tracking-tight">Sist. Procesos</span>
         </div>
-        {% endif %} {% endwith %}
+      </header>
+
+      <main class="px-4 pb-10 pt-20 sm:px-6 md:ml-72 md:pt-8 lg:px-10 lg:pt-10">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="mb-6 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 shadow-sm">
+            <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-600 text-white">
+              {{ icon("check", "h-3.5 w-3.5") }}
+            </span>
+            <span>{{ messages[0] }}</span>
+          </div>
+        {% endif %}
+        {% endwith %}
 
         <div class="mx-auto max-w-7xl">{% block content %}{% endblock %}</div>
       </main>
     </div>
+
+    <script>
+      function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const hamburger = document.getElementById('hamburger');
+        const isOpen = !sidebar.classList.contains('-translate-x-full');
+        sidebar.classList.toggle('-translate-x-full', isOpen);
+        overlay.classList.toggle('hidden', isOpen);
+        hamburger.setAttribute('aria-expanded', String(!isOpen));
+      }
+      function closeSidebarOnMobile() {
+        if (window.innerWidth < 768) toggleSidebar();
+      }
+    </script>
   </body>
 </html>

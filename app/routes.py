@@ -211,8 +211,10 @@ def metas_anuales():
         "metas_anuales.html",
         indicadores=indicadores,
         gestiones=gestiones,
+        gestion_id=repo.get_default_gestion_id(),
         metas_anuales=repo.get_metas_anuales(),
     )
+
 
 
 @bp.route("/indicadores", methods=["GET", "POST"])
@@ -266,8 +268,10 @@ def lineas_base():
         "lineas_base.html",
         indicadores=repo.get_indicadores(),
         gestiones=repo.get_gestiones(),
+        gestion_id=repo.get_default_gestion_id(),
         lineas=repo.get_lineas_base(),
     )
+
 
 
 @bp.route("/metas-valores", methods=["GET", "POST"])

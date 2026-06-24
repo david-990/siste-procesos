@@ -9,7 +9,7 @@
 {% call panel() %}
 <form method="post" class="grid grid-cols-1 gap-4 lg:grid-cols-4">
     {{ select("indicador_id", "Indicador", indicadores, text="codigo", width="lg:col-span-1") }}
-    {{ select("gestion_id", "Gestión", gestiones) }}
+    {{ select("gestion_id", "Gestión", gestiones, selected=gestion_id) }}
     {{ input("linea_base", "Línea base", type="number") }}
     <div class="flex items-end">{{ button("Guardar") }}</div>
 </form>

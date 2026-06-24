@@ -9,7 +9,7 @@
 {% call panel() %}
 <form method="post" class="grid grid-cols-1 gap-4 lg:grid-cols-4">
     {{ select("indicador_id", "Indicador", indicadores, text="codigo", width="lg:col-span-1") }}
-    {{ select("gestion_id", "Gestion", gestiones) }}
+    {{ select("gestion_id", "Gestion", gestiones, selected=gestion_id) }}
     {{ input("meta_anual", "Meta anual", type="number") }}
     <div class="flex items-end">{{ button("Guardar meta anual") }}</div>
 </form>

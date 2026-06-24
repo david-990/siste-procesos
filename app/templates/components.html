@@ -1,13 +1,14 @@
 {% macro page_header(title, subtitle) %}
-    <div class="mb-6 flex flex-col gap-2">
-        <div class="inline-flex w-fit items-center rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">Sistema de seguimiento</div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">{{ title }}</h1>
-        <p class="max-w-3xl text-sm leading-6 text-slate-600">{{ subtitle }}</p>
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">{{ title }}</h1>
+        {% if subtitle %}
+          <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">{{ subtitle }}</p>
+        {% endif %}
     </div>
 {% endmacro %}
 
 {% macro panel() %}
-    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-900/5 md:p-6">
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
         {{ caller() }}
     </section>
 {% endmacro %}
@@ -17,7 +18,7 @@
         <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ label }}</span>
         <input name="{{ name }}" type="{{ type }}" value="{{ value }}"
                {% if type == 'number' %}step="any"{% endif %}
-               class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 invalid:border-red-300 invalid:focus:ring-red-100">
+               class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 invalid:border-red-300 invalid:focus:ring-red-100">
     </label>
 {% endmacro %}
 
@@ -25,7 +26,7 @@
     <label class="block {{ width }}">
         <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ label }}</span>
         <select name="{{ name }}"
-                class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100">
+                class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100">
             {% for option in options %}
                 <option value="{{ option[key] }}" {% if option[key]|string == selected|string %}selected{% endif %}>
                     {{ option[text] }}
@@ -36,7 +37,7 @@
 {% endmacro %}
 
 {% macro button(label='Guardar') %}
-    <button class="inline-flex min-h-10 items-center justify-center rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
+    <button class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
         {{ label }}
     </button>
 {% endmacro %}
