@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components.html" import page_header, panel, input, select, button %}
+{% from "components.html" import page_header, panel, input, select, button, icon %}
 
 {% block title %}Indicadores{% endblock %}
 
@@ -86,19 +86,20 @@
                     <td class="px-4 py-3 text-right">
                         <div class="flex justify-end gap-2">
                             <button type="button"
-                                    class="edit-indicador inline-flex min-h-9 items-center justify-center rounded-xl bg-brand-700 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]"
+                                    class="edit-indicador inline-flex items-center justify-center rounded-lg bg-brand-700 p-2 text-white shadow-sm hover:bg-brand-800 active:scale-[0.98] transition"
                                     data-id="{{ indicador.id }}"
                                     data-codigo="{{ indicador.codigo }}"
                                     data-nombre="{{ indicador.nombre_indicador }}"
                                     data-prioridad="{{ indicador.prioridad }}"
                                     data-sentido="{{ indicador.sentido_esperado }}"
                                     data-formula="{{ indicador.formula }}"
-                                    data-agregacion="{{ indicador.tipo_agregacion }}">
-                                Editar
+                                    data-agregacion="{{ indicador.tipo_agregacion }}"
+                                    title="Editar">
+                                {{ icon("edit", "h-4 w-4") }}
                             </button>
                             <form method="post" action="{{ url_for('main.indicador_eliminar', indicador_id=indicador.id) }}">
-                                <button class="inline-flex min-h-9 items-center justify-center rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-red-600/20 outline-none transition hover:bg-red-700 focus-visible:ring-4 focus-visible:ring-red-200 active:scale-[0.98]">
-                                    Eliminar
+                                <button class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 hover:bg-red-100 active:scale-[0.98] transition" title="Eliminar">
+                                    {{ icon("trash", "h-4 w-4") }}
                                 </button>
                             </form>
                         </div>

@@ -438,3 +438,11 @@ def get_avances(gestion_id=None, indicador_id=None):
         """,
         tuple(params),
     )
+
+
+def delete_linea_base(linea_base_id):
+    execute("DELETE FROM lineas_base WHERE id = %s", (linea_base_id,))
+
+
+def delete_meta_anual(meta_anual_id):
+    execute("DELETE FROM metas_anuales WHERE id = %s", (meta_anual_id,))

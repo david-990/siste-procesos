@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Sistema de seguimiento y gestión de indicadores de procesos." />
     <title>{% block title %}Sistema de Procesos{% endblock %} · Gestión de Indicadores</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Epunda+Sans:wght@300;400;500;600;700;800;900&family=Epunda+Slab:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
-      body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+      body { font-family: 'Epunda Sans', system-ui, -apple-system, sans-serif; }
+      h1, h2, h3, h4, h5, h6, th, .font-bold, .font-semibold { font-family: 'Epunda Slab', Georgia, serif; }
       #sidebar { transition: transform 0.2s ease; }
     </style>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -30,7 +30,8 @@
               },
             },
             fontFamily: {
-              sans: ['Inter', 'system-ui', 'sans-serif'],
+              sans: ['Epunda Sans', 'system-ui', 'sans-serif'],
+              slab: ['Epunda Slab', 'Georgia', 'serif'],
             },
           },
         },
@@ -131,12 +132,37 @@
       <main class="px-4 pb-10 pt-20 sm:px-6 md:ml-72 md:pt-8 lg:px-10 lg:pt-10">
         {% with messages = get_flashed_messages() %}
         {% if messages %}
-          <div class="mb-6 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 shadow-sm">
-            <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-600 text-white">
-              {{ icon("check", "h-3.5 w-3.5") }}
-            </span>
-            <span>{{ messages[0] }}</span>
-          </div>
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const messages = {{ messages | tojson }};
+              messages.forEach(msg => {
+                let icon = 'success';
+                if (msg.toLowerCase().includes('error') || msg.toLowerCase().includes('debe estar') || msg.toLowerCase().includes('no se pudo') || msg.toLowerCase().includes('valida') || msg.toLowerCase().includes('limite') || msg.toLowerCase().includes('incorrecto')) {
+                  icon = 'error';
+                }
+                
+                const Toast = Swal.mixin({
+                  toast: true,
+                  position: 'top-end',
+                  showConfirmButton: false,
+                  timer: 3500,
+                  timerProgressBar: true,
+                  didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                  }
+                });
+
+                Toast.fire({
+                  icon: icon,
+                  title: msg,
+                  customClass: {
+                    popup: 'rounded-xl shadow-md border border-slate-100'
+                  }
+                });
+              });
+            });
+          </script>
         {% endif %}
         {% endwith %}
 
@@ -157,6 +183,38 @@
       function closeSidebarOnMobile() {
         if (window.innerWidth < 768) toggleSidebar();
       }
+      document.addEventListener('submit', function (e) {
+        const form = e.target;
+        if (form.action && form.action.includes('/eliminar')) {
+          if (form.dataset.confirmed === 'true') {
+            return;
+          }
+          e.preventDefault();
+          
+          Swal.fire({
+            title: '¿Confirmar eliminación?',
+            text: 'Esta acción no se puede deshacer.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            background: '#ffffff',
+            color: '#0f172a',
+            customClass: {
+              popup: 'rounded-xl',
+              confirmButton: 'rounded-lg px-4 py-2 text-sm font-semibold',
+              cancelButton: 'rounded-lg px-4 py-2 text-sm font-semibold'
+            }
+          }).then((result) => {
+            if (result.isConfirmed) {
+              form.dataset.confirmed = 'true';
+              form.submit();
+            }
+          });
+        }
+      });
     </script>
   </body>
 </html>

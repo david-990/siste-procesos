@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components.html" import page_header, panel, select, input, button %}
+{% from "components.html" import page_header, panel, select, input, icon %}
 
 {% block title %}Línea Base{% endblock %}
 
@@ -7,39 +7,102 @@
 {{ page_header("Línea Base", "Registra el valor de referencia histórico por indicador y gestión.") }}
 
 {% call panel() %}
-<form method="post" class="grid grid-cols-1 gap-4 lg:grid-cols-4">
-    {{ select("indicador_id", "Indicador", indicadores, text="codigo", width="lg:col-span-1") }}
-    {{ select("gestion_id", "Gestión", gestiones, selected=gestion_id) }}
-    {{ input("linea_base", "Línea base", type="number") }}
-    <div class="flex items-end">{{ button("Guardar") }}</div>
+<form method="post" class="space-y-4" id="linea-base-form">
+    <div class="mb-2">
+        <div class="text-base font-semibold text-slate-900" id="form-title">Registrar línea base</div>
+        <p class="text-sm text-slate-500" id="form-subtitle">Ingresa los datos para registrar o actualizar el valor de referencia histórico.</p>
+    </div>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        {{ select("indicador_id", "Indicador", indicadores, text="codigo", width="lg:col-span-1") }}
+        {{ select("gestion_id", "Gestión", gestiones, selected=gestion_id) }}
+        {{ input("linea_base", "Línea base", type="number", min="0", max="100") }}
+        <div class="flex items-end gap-2">
+            <button type="submit" id="submit-button" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+                Guardar
+            </button>
+            <button type="button" id="cancel-button" class="hidden inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 outline-none transition hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-slate-100 active:scale-[0.98]">
+                Cancelar
+            </button>
+        </div>
+    </div>
 </form>
 {% endcall %}
 
-<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-950">Historico</h2>
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5">
+<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-900">Historial de líneas base</h2>
+<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
     <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
-                <th class="px-4 py-3 text-left font-bold">Codigo</th>
-                <th class="px-4 py-3 text-left font-bold">Indicador</th>
-                <th class="px-4 py-3 text-center font-bold">Gestion</th>
-                <th class="px-4 py-3 text-right font-bold">Linea base</th>
+                <th class="px-4 py-3 text-left font-semibold">Codigo</th>
+                <th class="px-4 py-3 text-left font-semibold">Indicador</th>
+                <th class="px-4 py-3 text-center font-semibold">Gestion</th>
+                <th class="px-4 py-3 text-right font-semibold">Linea base</th>
+                <th class="px-4 py-3 text-center font-semibold">Acciones</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-slate-200">
             {% for row in lineas %}
-            <tr class="transition hover:bg-slate-50/80">
+            <tr class="hover:bg-slate-50">
                 <td class="px-4 py-3 font-semibold text-brand-700">{{ row.codigo }}</td>
-                <td class="px-4 py-3 text-slate-700">{{ row.nombre_indicador }}</td>
-                <td class="px-4 py-3 text-center">{{ row.gestion }}</td>
-                <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ "%.2f"|format(row.linea_base) }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ row.nombre_indicador }}</td>
+                <td class="px-4 py-3 text-center text-slate-600">{{ row.gestion }}</td>
+                <td class="px-4 py-3 text-right font-semibold text-slate-900 tabular-nums">{{ "%.2f%%"|format(row.linea_base) }}</td>
+                <td class="px-4 py-3 text-center">
+                    <div class="flex justify-center gap-2">
+                        <button type="button"
+                                class="edit-linea-base inline-flex items-center justify-center rounded-lg bg-brand-700 p-2 text-white shadow-sm hover:bg-brand-800 active:scale-[0.98] transition"
+                                data-indicador-id="{{ row.indicador_id }}"
+                                data-gestion-id="{{ row.gestion_id }}"
+                                data-linea-base="{{ row.linea_base }}"
+                                title="Editar">
+                            {{ icon("edit", "h-4 w-4") }}
+                        </button>
+                        <form method="post" action="{{ url_for('main.linea_base_eliminar', linea_base_id=row.id) }}">
+                            <button class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 hover:bg-red-100 active:scale-[0.98] transition" title="Eliminar">
+                                {{ icon("trash", "h-4 w-4") }}
+                            </button>
+                        </form>
+                    </div>
+                </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="4" class="px-4 py-10 text-center text-sm font-medium text-slate-500">No hay lineas base registradas.</td>
+                <td colspan="5" class="px-4 py-10 text-center text-sm text-slate-400">No hay lineas base registradas.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+<script>
+const form = document.getElementById("linea-base-form");
+const cancelButton = document.getElementById("cancel-button");
+const submitButton = document.getElementById("submit-button");
+const formTitle = document.getElementById("form-title");
+const formSubtitle = document.getElementById("form-subtitle");
+
+function setFormModeCreate() {
+    form.reset();
+    formTitle.textContent = "Registrar línea base";
+    formSubtitle.textContent = "Ingresa los datos para registrar o actualizar el valor de referencia histórico.";
+    submitButton.textContent = "Guardar";
+    cancelButton.classList.add("hidden");
+}
+
+document.querySelectorAll(".edit-linea-base").forEach((button) => {
+    button.addEventListener("click", () => {
+        form.elements.indicador_id.value = button.dataset.indicadorId;
+        form.elements.gestion_id.value = button.dataset.gestionId;
+        form.elements.linea_base.value = button.dataset.lineaBase;
+        
+        formTitle.textContent = "Editar línea base";
+        formSubtitle.textContent = "Actualiza el valor y guarda los cambios.";
+        submitButton.textContent = "Actualizar";
+        cancelButton.classList.remove("hidden");
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+});
+
+cancelButton.addEventListener("click", setFormModeCreate);
+</script>
 {% endblock %}

@@ -117,10 +117,6 @@ def panel():
         for fila in seguimiento
         if fila["estado"]["nombre"] != "Concluido"
     ]
-    total_meta_cierre = sum(float(f["meta_cierre"]) for f in seguimiento if f["meta_cierre"] is not None)
-    total_meta_anual = sum(float(f["meta_anual"]) for f in seguimiento if f["meta_anual"] is not None)
-    total_valor_cierre = sum(float(f["valor_cierre"]) for f in seguimiento if f["valor_cierre"] is not None)
-
     return render_template(
         "panel.html",
         gestiones=gestiones,
@@ -139,12 +135,6 @@ def panel():
         seguimiento=seguimiento,
         bar_labels=[f["codigo"] for f in seguimiento if f["avance_tipo_1"] is not None],
         bar_values=[round(_limitar_porcentaje(f["avance_tipo_1"]), 2) for f in seguimiento if f["avance_tipo_1"] is not None],
-        comparison_labels=["Logro esperado", "Meta anual", "Valor obtenido"],
-        comparison_values=[
-            round(total_meta_cierre, 2),
-            round(total_meta_anual, 2),
-            round(total_valor_cierre, 2),
-        ],
         line_labels=[f["mes"] for f in evolucion],
         line_meta_values=[float(f["meta_promedio"]) if f["meta_promedio"] is not None else None for f in evolucion],
         line_meta_anual_values=[float(f["meta_anual_promedio"]) if f["meta_anual_promedio"] is not None else None for f in evolucion],
@@ -197,12 +187,15 @@ def metas_anuales():
     if request.method == "POST":
         meta_anual = _float_value("meta_anual")
         if meta_anual is not None:
-            repo.save_meta_anual(
-                int(request.form["indicador_id"]),
-                int(request.form["gestion_id"]),
-                meta_anual,
-            )
-            flash("Meta anual guardada.")
+            if 0 <= meta_anual <= 100:
+                repo.save_meta_anual(
+                    int(request.form["indicador_id"]),
+                    int(request.form["gestion_id"]),
+                    meta_anual,
+                )
+                flash("Meta anual guardada.")
+            else:
+                flash("La meta anual debe estar entre 0 y 100.")
         else:
             flash("Ingresa una meta anual valida.")
         return redirect(url_for("main.metas_anuales"))
@@ -214,6 +207,13 @@ def metas_anuales():
         gestion_id=repo.get_default_gestion_id(),
         metas_anuales=repo.get_metas_anuales(),
     )
+
+
+@bp.post("/metas-anuales/<int:meta_anual_id>/eliminar")
+def meta_anual_eliminar(meta_anual_id):
+    repo.delete_meta_anual(meta_anual_id)
+    flash("Meta anual eliminada.")
+    return redirect(url_for("main.metas_anuales"))
 
 
 
@@ -256,12 +256,19 @@ def indicador_eliminar(indicador_id):
 @bp.route("/lineas-base", methods=["GET", "POST"])
 def lineas_base():
     if request.method == "POST":
-        repo.save_linea_base(
-            int(request.form["indicador_id"]),
-            int(request.form["gestion_id"]),
-            _float_value("linea_base"),
-        )
-        flash("Linea base guardada.")
+        linea_base = _float_value("linea_base")
+        if linea_base is not None:
+            if 0 <= linea_base <= 100:
+                repo.save_linea_base(
+                    int(request.form["indicador_id"]),
+                    int(request.form["gestion_id"]),
+                    linea_base,
+                )
+                flash("Linea base guardada.")
+            else:
+                flash("La linea base debe estar entre 0 y 100.")
+        else:
+            flash("Ingresa una linea base valida.")
         return redirect(url_for("main.lineas_base"))
 
     return render_template(
@@ -271,6 +278,13 @@ def lineas_base():
         gestion_id=repo.get_default_gestion_id(),
         lineas=repo.get_lineas_base(),
     )
+
+
+@bp.post("/lineas-base/<int:linea_base_id>/eliminar")
+def linea_base_eliminar(linea_base_id):
+    repo.delete_linea_base(linea_base_id)
+    flash("Línea base eliminada.")
+    return redirect(url_for("main.lineas_base"))
 
 
 
@@ -293,11 +307,22 @@ def metas_valores():
         mes_id = int(request.form["mes_id"])
         meta = _float_value("meta_mensual")
         valor = _float_value("valor_obtenido")
+        errors = []
         if meta is not None:
-            repo.save_meta(indicador_id, gestion_id, mes_id, meta)
+            if 0 <= meta <= 100:
+                repo.save_meta(indicador_id, gestion_id, mes_id, meta)
+            else:
+                errors.append("La meta mensual debe estar entre 0 y 100.")
         if valor is not None:
-            repo.save_valor(indicador_id, gestion_id, mes_id, valor)
-        flash("Meta / valor guardado.")
+            if 0 <= valor <= 100:
+                repo.save_valor(indicador_id, gestion_id, mes_id, valor)
+            else:
+                errors.append("El valor obtenido debe estar entre 0 y 100.")
+        if errors:
+            for err in errors:
+                flash(err)
+        else:
+            flash("Meta / valor guardado.")
         return redirect(url_for("main.metas_valores", indicador_id=indicador_id, gestion_id=gestion_id))
 
     registros = repo.get_metas_valores(indicador_id, gestion_id)
@@ -349,8 +374,8 @@ def resumen():
     metas = [float(r["meta_mensual"]) for r in registros if r["meta_mensual"] is not None]
     valores = [float(r["valor_obtenido"]) for r in registros if r["valor_obtenido"] is not None]
     if indicador["tipo_agregacion"] == "NO_AGREGABLE":
-        meta_periodo = sum(metas) / len(metas) if metas else None
-        valor_periodo = sum(valores) / len(valores) if valores else None
+        meta_periodo = float(registros[-1]["meta_mensual"]) if registros and registros[-1]["meta_mensual"] is not None else None
+        valor_periodo = float(registros[-1]["valor_obtenido"]) if registros and registros[-1]["valor_obtenido"] is not None else None
     else:
         meta_periodo = sum(metas) if metas else None
         valor_periodo = sum(valores) if valores else None

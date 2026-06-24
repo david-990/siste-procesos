@@ -84,12 +84,12 @@
                         <input type="hidden" name="gestion_id" value="{{ gestion_id }}">
                         <input type="hidden" name="mes_id" value="{{ r.mes_id }}">
                     </form>
-                    <input form="mes-{{ r.mes_id }}" name="meta_mensual" type="number" step="any"
+                    <input form="mes-{{ r.mes_id }}" name="meta_mensual" type="number" step="any" min="0" max="100"
                            value="{{ '%.2f'|format(r.meta_mensual) if r.meta_mensual is not none else '' }}"
                            class="w-28 rounded-xl border border-slate-300 bg-white px-3 py-2 text-right text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
                 </td>
                 <td class="px-4 py-3 text-right">
-                    <input form="mes-{{ r.mes_id }}" name="valor_obtenido" type="number" step="any"
+                    <input form="mes-{{ r.mes_id }}" name="valor_obtenido" type="number" step="any" min="0" max="100"
                            value="{{ '%.2f'|format(r.valor_obtenido) if r.valor_obtenido is not none else '' }}"
                            class="w-28 rounded-xl border border-slate-300 bg-white px-3 py-2 text-right text-sm font-semibold text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
                 </td>
