@@ -262,8 +262,28 @@ def panel():
 
     total_indicadores = len(seguimiento)
     resultados = [float(f["avance_tipo_1"]) for f in seguimiento if f["avance_tipo_1"] is not None]
-    resultados_vista = [services.limitar_porcentaje(valor) for valor in resultados]
-    avance_promedio = sum(resultados_vista) / len(resultados_vista) if resultados_vista else None
+
+    avances_acciones_db = repo.fetch_all(
+        """
+        SELECT aa.resultado
+        FROM avances_acciones_estrategicas aa
+        JOIN periodos p ON aa.periodo_id = p.id
+        WHERE p.id = %s AND p.gestion_id = %s AND aa.tipo_avance = 'TIPO_1'
+        """,
+        (periodo_id, gestion_id)
+    )
+    avance_acciones_promedio = sum(float(r["resultado"]) for r in avances_acciones_db) / len(avances_acciones_db) if avances_acciones_db else None
+
+    avances_objetivos_db = repo.fetch_all(
+        """
+        SELECT ao.resultado
+        FROM avances_objetivos_estrategicos ao
+        JOIN periodos p ON ao.periodo_id = p.id
+        WHERE p.id = %s AND p.gestion_id = %s AND ao.tipo_avance = 'TIPO_1'
+        """,
+        (periodo_id, gestion_id)
+    )
+    avance_objetivos_promedio = sum(float(r["resultado"]) for r in avances_objetivos_db) / len(avances_objetivos_db) if avances_objetivos_db else None
 
     conteo_estados = {"Critico": 0, "En seguimiento": 0, "Concluido": 0, "Sin dato": 0}
     for fila in seguimiento:
@@ -279,7 +299,8 @@ def panel():
         alerta_cierre=alerta_cierre,
         total_indicadores=total_indicadores,
         evaluados=len(resultados),
-        avance_promedio=avance_promedio,
+        avance_acciones_promedio=avance_acciones_promedio,
+        avance_objetivos_promedio=avance_objetivos_promedio,
         seguimiento=seguimiento,
         bar_labels=[f["codigo"] for f in seguimiento if f["avance_tipo_1"] is not None],
         bar_values=[round(services.limitar_porcentaje(f["avance_tipo_1"]), 2) for f in seguimiento if f["avance_tipo_1"] is not None],

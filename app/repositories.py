@@ -419,8 +419,14 @@ def get_panel_seguimiento(gestion_id, periodo_id):
                mm.meta_mensual AS meta_cierre,
                ma.meta_anual,
                vo.valor_obtenido AS valor_cierre,
-               a.resultado AS avance_tipo_1
+               a.resultado AS avance_tipo_1,
+               ae.nombre AS accion_estrategica,
+               oe.nombre AS objetivo_estrategico,
+               aae.resultado AS avance_accion,
+               aoe.resultado AS avance_objetivo
         FROM indicadores i
+        JOIN acciones_estrategicas ae ON i.accion_estrategica_id = ae.id
+        JOIN objetivos_estrategicos oe ON ae.objetivo_estrategico_id = oe.id
         JOIN periodos p ON p.id = %s AND p.gestion_id = %s
         JOIN gestiones g ON p.gestion_id = g.id
         JOIN meses mf ON p.mes_fin_id = mf.id
@@ -439,6 +445,14 @@ def get_panel_seguimiento(gestion_id, periodo_id):
             ON a.indicador_id = i.id
             AND a.periodo_id = p.id
             AND a.tipo_avance = 'TIPO_1'
+        LEFT JOIN avances_acciones_estrategicas aae
+            ON aae.accion_estrategica_id = ae.id
+            AND aae.periodo_id = p.id
+            AND aae.tipo_avance = 'TIPO_1'
+        LEFT JOIN avances_objetivos_estrategicos aoe
+            ON aoe.objetivo_estrategico_id = oe.id
+            AND aoe.periodo_id = p.id
+            AND aoe.tipo_avance = 'TIPO_1'
         WHERE i.estado = 1
         ORDER BY i.codigo
         """,
