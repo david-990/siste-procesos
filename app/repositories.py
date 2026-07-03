@@ -1,6 +1,35 @@
 from datetime import datetime
 
-from app.db import execute, fetch_all, fetch_one
+from app.db import execute, execute_many, fetch_all, fetch_one
+
+
+def get_user_by_id(user_id):
+    return fetch_one(
+        "SELECT id, username, nombre, role, is_active FROM users WHERE id = %s",
+        (user_id,),
+    )
+
+
+def get_user_by_username(username):
+    return fetch_one(
+        """
+        SELECT id, username, password_hash, nombre, role, is_active
+        FROM users
+        WHERE username = %s AND is_active = 1
+        """,
+        (username,),
+    )
+
+
+def update_user_password(user_id, password_hash):
+    execute(
+        """
+        UPDATE users
+        SET password_hash = %s, updated_at = CURRENT_TIMESTAMP
+        WHERE id = %s
+        """,
+        (password_hash, user_id),
+    )
 
 
 def get_gestiones():
@@ -42,14 +71,15 @@ def get_periodos(gestion_id):
 
 
 def get_indicadores(include_inactive=False):
-    where = "" if include_inactive else "WHERE estado = 1"
+    where = "WHERE i.estado = 1" if not include_inactive else ""
     return fetch_all(
         f"""
-        SELECT id, codigo, nombre_indicador, prioridad, sentido_esperado,
-               formula, tipo_agregacion, estado
-        FROM indicadores
+        SELECT i.id, i.accion_estrategica_id, i.codigo, i.nombre_indicador, i.prioridad, i.sentido_esperado,
+               i.formula, i.tipo_agregacion, i.estado, ae.nombre AS accion_nombre
+        FROM indicadores i
+        JOIN acciones_estrategicas ae ON i.accion_estrategica_id = ae.id
         {where}
-        ORDER BY codigo
+        ORDER BY i.codigo
         """
     )
 
@@ -60,6 +90,7 @@ def get_indicador(indicador_id):
 
 def save_indicador(data, indicador_id=None):
     params = (
+        data["accion_estrategica_id"],
         data["codigo"],
         data["nombre_indicador"],
         data["prioridad"],
@@ -71,7 +102,7 @@ def save_indicador(data, indicador_id=None):
         execute(
             """
             UPDATE indicadores
-            SET codigo=%s, nombre_indicador=%s, prioridad=%s,
+            SET accion_estrategica_id=%s, codigo=%s, nombre_indicador=%s, prioridad=%s,
                 sentido_esperado=%s, formula=%s, tipo_agregacion=%s,
                 updated_at=CURRENT_TIMESTAMP
             WHERE id=%s
@@ -82,8 +113,8 @@ def save_indicador(data, indicador_id=None):
     return execute(
         """
         INSERT INTO indicadores
-            (codigo, nombre_indicador, prioridad, sentido_esperado, formula, tipo_agregacion)
-        VALUES (%s, %s, %s, %s, %s, %s)
+            (accion_estrategica_id, codigo, nombre_indicador, prioridad, sentido_esperado, formula, tipo_agregacion)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         """,
         params,
     )
@@ -103,33 +134,25 @@ def delete_indicador(indicador_id):
 def get_acciones():
     return fetch_all(
         """
-        SELECT a.id, a.indicador_id, a.codigo, a.nombre_accion,
-               a.descripcion, a.fecha_inicio, a.fecha_fin,
-               i.codigo AS indicador_codigo,
-               i.nombre_indicador
-        FROM acciones a
-        JOIN indicadores i ON a.indicador_id = i.id
-        ORDER BY i.codigo, a.codigo
+        SELECT ae.id, ae.objetivo_estrategico_id, ae.nombre AS nombre_accion,
+               oe.nombre AS objetivo_nombre
+        FROM acciones_estrategicas ae
+        JOIN objetivos_estrategicos oe ON ae.objetivo_estrategico_id = oe.id
+        ORDER BY oe.id, ae.id
         """
     )
 
 
 def save_accion(data, accion_id=None):
     params = (
-        data["indicador_id"],
-        data["codigo"],
-        data["nombre_accion"],
-        data["descripcion"],
-        data["fecha_inicio"],
-        data["fecha_fin"],
+        data["objetivo_estrategico_id"],
+        data["nombre"],
     )
     if accion_id:
         execute(
             """
-            UPDATE acciones
-            SET indicador_id=%s, codigo=%s, nombre_accion=%s,
-                descripcion=%s, fecha_inicio=%s, fecha_fin=%s,
-                updated_at=CURRENT_TIMESTAMP
+            UPDATE acciones_estrategicas
+            SET objetivo_estrategico_id=%s, nombre=%s
             WHERE id=%s
             """,
             (*params, accion_id),
@@ -137,16 +160,15 @@ def save_accion(data, accion_id=None):
         return accion_id
     return execute(
         """
-        INSERT INTO acciones
-            (indicador_id, codigo, nombre_accion, descripcion, fecha_inicio, fecha_fin)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO acciones_estrategicas (objetivo_estrategico_id, nombre)
+        VALUES (%s, %s)
         """,
         params,
     )
 
 
 def delete_accion(accion_id):
-    execute("DELETE FROM acciones WHERE id = %s", (accion_id,))
+    execute("DELETE FROM acciones_estrategicas WHERE id = %s", (accion_id,))
 
 
 def get_lineas_base(indicador_id=None):
@@ -285,6 +307,19 @@ def save_avance(indicador_id, periodo_id, tipo_avance, resultado):
     )
 
 
+def save_avances(avances):
+    if not avances:
+        return 0
+    return execute_many(
+        """
+        INSERT INTO avances (indicador_id, periodo_id, tipo_avance, resultado)
+        VALUES (%s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE resultado = VALUES(resultado)
+        """,
+        avances,
+    )
+
+
 def calcular_avance_tipo_1(gestion_id, periodo_id):
     periodo = fetch_one(
         """
@@ -322,7 +357,7 @@ def calcular_avance_tipo_1(gestion_id, periodo_id):
         (gestion_id, periodo["mes_fin_id"], gestion_id, periodo["mes_fin_id"]),
     )
 
-    calculados = 0
+    avances = []
     omitidos = 0
     for fila in filas:
         meta = fila["meta_mensual"]
@@ -332,8 +367,38 @@ def calcular_avance_tipo_1(gestion_id, periodo_id):
             continue
 
         resultado = float(valor) / float(meta) * 100
-        save_avance(fila["id"], periodo_id, "TIPO_1", resultado)
-        calculados += 1
+        avances.append((fila["id"], periodo_id, "TIPO_1", resultado))
+
+    save_avances(avances)
+    calculados = len(avances)
+
+    # Recalcular promedio de avance para cada Acción Estratégica
+    execute(
+        """
+        INSERT INTO avances_acciones_estrategicas (accion_estrategica_id, periodo_id, tipo_avance, resultado)
+        SELECT i.accion_estrategica_id, %s, 'TIPO_1', AVG(a.resultado)
+        FROM avances a
+        JOIN indicadores i ON a.indicador_id = i.id
+        WHERE a.periodo_id = %s AND a.tipo_avance = 'TIPO_1'
+        GROUP BY i.accion_estrategica_id
+        ON DUPLICATE KEY UPDATE resultado = VALUES(resultado)
+        """,
+        (periodo_id, periodo_id)
+    )
+
+    # Recalcular promedio de avance para cada Objetivo Estratégico
+    execute(
+        """
+        INSERT INTO avances_objetivos_estrategicos (objetivo_estrategico_id, periodo_id, tipo_avance, resultado)
+        SELECT ae.objetivo_estrategico_id, %s, 'TIPO_1', AVG(aa.resultado)
+        FROM avances_acciones_estrategicas aa
+        JOIN acciones_estrategicas ae ON aa.accion_estrategica_id = ae.id
+        WHERE aa.periodo_id = %s AND aa.tipo_avance = 'TIPO_1'
+        GROUP BY ae.objetivo_estrategico_id
+        ON DUPLICATE KEY UPDATE resultado = VALUES(resultado)
+        """,
+        (periodo_id, periodo_id)
+    )
 
     return {
         "calculados": calculados,
@@ -446,3 +511,58 @@ def delete_linea_base(linea_base_id):
 
 def delete_meta_anual(meta_anual_id):
     execute("DELETE FROM metas_anuales WHERE id = %s", (meta_anual_id,))
+
+
+def get_objetivos():
+    return fetch_all("SELECT id, nombre FROM objetivos_estrategicos ORDER BY id")
+
+
+def get_objetivo(objetivo_id):
+    return fetch_one("SELECT * FROM objetivos_estrategicos WHERE id = %s", (objetivo_id,))
+
+
+def save_objetivo(data, objetivo_id=None):
+    params = (data["nombre"].strip(),)
+    if objetivo_id:
+        execute("UPDATE objetivos_estrategicos SET nombre=%s WHERE id=%s", (*params, objetivo_id))
+        return objetivo_id
+    return execute("INSERT INTO objetivos_estrategicos (nombre) VALUES (%s)", params)
+
+
+def delete_objetivo(objetivo_id):
+    execute("DELETE FROM objetivos_estrategicos WHERE id = %s", (objetivo_id,))
+
+
+def get_avances_acciones(gestion_id):
+    return fetch_all(
+        """
+        SELECT aa.id, aa.resultado, aa.tipo_avance, ae.nombre AS nombre_accion, oe.nombre AS objetivo_nombre,
+               p.nombre AS periodo, g.nombre AS gestion, mf.numero_mes AS mes_fin
+        FROM avances_acciones_estrategicas aa
+        JOIN acciones_estrategicas ae ON aa.accion_estrategica_id = ae.id
+        JOIN objetivos_estrategicos oe ON ae.objetivo_estrategico_id = oe.id
+        JOIN periodos p ON aa.periodo_id = p.id
+        JOIN meses mf ON p.mes_fin_id = mf.id
+        JOIN gestiones g ON p.gestion_id = g.id
+        WHERE p.gestion_id = %s
+        ORDER BY oe.id, ae.id, p.id, aa.tipo_avance
+        """,
+        (gestion_id,)
+    )
+
+
+def get_avances_objetivos(gestion_id):
+    return fetch_all(
+        """
+        SELECT ao.id, ao.resultado, ao.tipo_avance, oe.nombre AS objetivo_nombre,
+               p.nombre AS periodo, g.nombre AS gestion, mf.numero_mes AS mes_fin
+        FROM avances_objetivos_estrategicos ao
+        JOIN objetivos_estrategicos oe ON ao.objetivo_estrategico_id = oe.id
+        JOIN periodos p ON ao.periodo_id = p.id
+        JOIN meses mf ON p.mes_fin_id = mf.id
+        JOIN gestiones g ON p.gestion_id = g.id
+        WHERE p.gestion_id = %s
+        ORDER BY oe.id, p.id, ao.tipo_avance
+        """,
+        (gestion_id,)
+    )

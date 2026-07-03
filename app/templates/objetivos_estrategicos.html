@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% from "components.html" import page_header, panel, input, icon %}
+
+{% block title %}Objetivos Estratégicos{% endblock %}
+
+{% block content %}
+{{ page_header("Objetivos Estratégicos", "Registra y gestiona los objetivos estratégicos de la institución.") }}
+
+{% call panel() %}
+<form method="post" class="space-y-4" id="objetivo-form">
+    <div class="mb-2">
+        <div class="text-base font-semibold text-slate-900" id="form-title">Registrar Objetivo Estratégico</div>
+        <p class="text-sm text-slate-500" id="form-subtitle">Ingresa los datos para registrar un nuevo objetivo estratégico.</p>
+    </div>
+    <input type="hidden" name="id" id="objetivo-id">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        {{ input("nombre", "Objetivo Estratégico", type="text", width="lg:col-span-3") }}
+        <div class="flex items-end gap-2">
+            <button type="submit" id="submit-button" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+                Guardar
+            </button>
+            <button type="button" id="cancel-button" class="hidden inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 outline-none transition hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-slate-100 active:scale-[0.98]">
+                Cancelar
+            </button>
+        </div>
+    </div>
+</form>
+{% endcall %}
+
+<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-900">Objetivos Estratégicos registrados</h2>
+<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+                <th class="w-20 px-4 py-3 text-left font-semibold">ID</th>
+                <th class="px-4 py-3 text-left font-semibold">Objetivo Estratégico</th>
+                <th class="w-32 px-4 py-3 text-center font-semibold">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+            {% for row in objetivos %}
+            <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 font-semibold text-brand-700">{{ row.id }}</td>
+                <td class="px-4 py-3 text-slate-900 font-medium">{{ row.nombre }}</td>
+                <td class="px-4 py-3 text-center">
+                    <div class="flex justify-center gap-2">
+                        <button type="button"
+                                class="edit-objetivo inline-flex items-center justify-center rounded-lg bg-brand-700 p-2 text-white shadow-sm hover:bg-brand-800 active:scale-[0.98] transition"
+                                data-id="{{ row.id }}"
+                                data-nombre="{{ row.nombre }}"
+                                title="Editar">
+                            {{ icon("edit", "h-4 w-4") }}
+                        </button>
+                        <form method="post" action="{{ url_for('main.objetivo_eliminar', objetivo_id=row.id) }}">
+                            <button class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 hover:bg-red-100 active:scale-[0.98] transition" title="Eliminar">
+                                {{ icon("trash", "h-4 w-4") }}
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" class="px-4 py-10 text-center text-sm text-slate-400">No hay objetivos estratégicos registrados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+const form = document.getElementById("objetivo-form");
+const cancelButton = document.getElementById("cancel-button");
+const submitButton = document.getElementById("submit-button");
+const formTitle = document.getElementById("form-title");
+const formSubtitle = document.getElementById("form-subtitle");
+const idInput = document.getElementById("objetivo-id");
+
+function setFormModeCreate() {
+    form.reset();
+    idInput.value = "";
+    formTitle.textContent = "Registrar Objetivo Estratégico";
+    formSubtitle.textContent = "Ingresa los datos para registrar un nuevo objetivo estratégico.";
+    submitButton.textContent = "Guardar";
+    cancelButton.classList.add("hidden");
+}
+
+document.querySelectorAll(".edit-objetivo").forEach((button) => {
+    button.addEventListener("click", () => {
+        idInput.value = button.dataset.id;
+        form.elements.nombre.value = button.dataset.nombre;
+        
+        formTitle.textContent = "Editar Objetivo Estratégico";
+        formSubtitle.textContent = "Actualiza el nombre del objetivo estratégico y guarda los cambios.";
+        submitButton.textContent = "Actualizar";
+        cancelButton.classList.remove("hidden");
+        form.scrollIntoView({ behavior: 'smooth' });
+    });
+});
+
+cancelButton.addEventListener("click", setFormModeCreate);
+</script>
+{% endblock %}

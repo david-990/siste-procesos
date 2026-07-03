@@ -1,10 +1,78 @@
 {% extends "base.html" %}
 {% from "components.html" import page_header, panel %}
 
+{% macro estado_block(block_id, titulo, badge_class, filas, empty_message) %}
+<section id="{{ block_id }}" class="scroll-mt-24">
+    <div class="mb-3 flex items-center justify-between">
+        <h3 class="text-base font-semibold text-slate-900">{{ titulo }}</h3>
+        <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold {{ badge_class }}">
+            {{ filas|length }} indicadores
+        </span>
+    </div>
+    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-4 py-3 text-left font-semibold">Indicador</th>
+                    <th class="px-4 py-3 text-right font-semibold">Logro esperado</th>
+                    <th class="px-4 py-3 text-right font-semibold">Meta anual</th>
+                    <th class="px-4 py-3 text-right font-semibold">Valor obtenido</th>
+                    <th class="px-4 py-3 text-right font-semibold">Avance Tipo I</th>
+                    <th class="px-4 py-3 text-left font-semibold">Estado</th>
+                    <th class="px-4 py-3 text-left font-semibold">Cierre</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for fila in filas %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3">
+                        <div class="font-semibold text-brand-700">{{ fila.codigo }}</div>
+                        <div class="max-w-xl text-xs text-slate-500 leading-relaxed">{{ fila.nombre_indicador }}</div>
+                    </td>
+                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.meta_cierre) if fila.meta_cierre is not none else "—" }}</td>
+                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.meta_anual) if fila.meta_anual is not none else "—" }}</td>
+                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.valor_cierre) if fila.valor_cierre is not none else "—" }}</td>
+                    <td class="px-4 py-3 text-right font-semibold tabular-nums">
+                        {{ "%.2f%%"|format(fila.avance_tipo_1_vista) if fila.avance_tipo_1_vista is not none else "—" }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.estado.clase }}">
+                            {{ fila.estado.nombre }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.alerta.clase }}">
+                            {{ fila.alerta.texto }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-400">
+                        {{ empty_message }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endmacro %}
+
 {% block title %}Panel{% endblock %}
 
 {% block content %}
 {{ page_header("Panel de seguimiento", "Monitoreo por gestión y periodo con datos registrados en la base.") }}
+{% set ns = namespace(riesgo=[], proceso=[], concluido=[]) %}
+{% for fila in seguimiento %}
+    {% if fila.estado.nombre == "Concluido" %}
+        {% set ns.concluido = ns.concluido + [fila] %}
+    {% elif fila.estado.nombre == "En seguimiento" %}
+        {% set ns.proceso = ns.proceso + [fila] %}
+    {% else %}
+        {% set ns.riesgo = ns.riesgo + [fila] %}
+    {% endif %}
+{% endfor %}
 
 {# ── Filtros ─────────────────────────────────────────────────────── #}
 {% call panel() %}
@@ -33,7 +101,7 @@
 {% endcall %}
 
 {# ── KPI cards ───────────────────────────────────────────────────── #}
-<div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+<div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
     <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex items-center gap-2">
             <span class="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-500">
@@ -64,77 +132,36 @@
         <div class="mt-2 text-2xl font-bold text-brand-700">{{ "%.1f%%"|format(avance_promedio) if avance_promedio is not none else "—" }}</div>
         <div class="mt-0.5 text-xs text-slate-400">avance Tipo I</div>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <a href="#detalle-concluido" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200">
         <div class="flex items-center gap-2">
             <span class="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
             </span>
             <div class="text-xs font-semibold text-slate-500">Concluidos</div>
         </div>
-        <div class="mt-2 text-2xl font-bold text-emerald-700">{{ concluidos }}</div>
+        <div class="mt-2 text-2xl font-bold text-emerald-700">{{ ns.concluido|length }}</div>
         <div class="mt-0.5 text-xs text-slate-400">≥ 95% avance</div>
-    </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm col-span-2 sm:col-span-1">
+    </a>
+    <a href="#detalle-proceso" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">
+        <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-amber-50 text-amber-600">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+            </span>
+            <div class="text-xs font-semibold text-slate-500">En proceso</div>
+        </div>
+        <div class="mt-2 text-2xl font-bold text-amber-600">{{ ns.proceso|length }}</div>
+        <div class="mt-0.5 text-xs text-slate-400">75% a 95% avance</div>
+    </a>
+    <a href="#detalle-riesgo" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm col-span-2 sm:col-span-1 transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-200">
         <div class="flex items-center gap-2">
             <span class="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-500">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </span>
-            <div class="text-xs font-semibold text-slate-500">Por atender</div>
+            <div class="text-xs font-semibold text-slate-500">Riesgo</div>
         </div>
-        <div class="mt-2 text-2xl font-bold text-red-600">{{ alertas_activas + sin_dato }}</div>
-        <div class="mt-0.5 text-xs text-slate-400">requieren seguimiento</div>
-    </div>
-</div>
-
-{# ── Indicadores pendientes ──────────────────────────────────────── #}
-<div class="mt-8">
-    <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-base font-semibold text-slate-900">Indicadores pendientes de cierre</h2>
-        <span class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
-            {{ pendientes|length }} por atender
-        </span>
-    </div>
-    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
-            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                    <th class="px-4 py-3 text-left font-semibold">Indicador</th>
-                    <th class="px-4 py-3 text-right font-semibold">Avance</th>
-                    <th class="px-4 py-3 text-left font-semibold">Estado</th>
-                    <th class="px-4 py-3 text-left font-semibold">Cierre</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-                {% for fila in pendientes %}
-                <tr class="hover:bg-slate-50">
-                    <td class="px-4 py-3">
-                        <div class="font-semibold text-brand-700">{{ fila.codigo }}</div>
-                        <div class="max-w-xl text-xs text-slate-500 leading-relaxed">{{ fila.nombre_indicador }}</div>
-                    </td>
-                    <td class="px-4 py-3 text-right font-semibold tabular-nums">
-                        {{ "%.2f%%"|format(fila.avance_tipo_1_vista) if fila.avance_tipo_1_vista is not none else "—" }}
-                    </td>
-                    <td class="px-4 py-3">
-                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.estado.clase }}">
-                            {{ fila.estado.nombre }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3">
-                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.alerta.clase }}">
-                            {{ fila.alerta.texto }}
-                        </span>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="4" class="px-4 py-10 text-center text-sm font-medium text-emerald-700">
-                        ✓ Todos los indicadores del periodo están concluidos.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+        <div class="mt-2 text-2xl font-bold text-red-600">{{ ns.riesgo|length }}</div>
+        <div class="mt-0.5 text-xs text-slate-400">críticos y sin dato</div>
+    </a>
 </div>
 
 {# ── Gráficos: avance y distribución ────────────────────────────── #}
@@ -180,56 +207,16 @@
 </div>
 
 
-
-{# ── Tabla de seguimiento completo ───────────────────────────────── #}
-<div class="mt-8">
-    <h2 class="mb-3 text-base font-semibold text-slate-900">Seguimiento completo del periodo</h2>
-    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
-            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                    <th class="px-4 py-3 text-left font-semibold">Indicador</th>
-                    <th class="px-4 py-3 text-right font-semibold">Logro esperado</th>
-                    <th class="px-4 py-3 text-right font-semibold">Meta anual</th>
-                    <th class="px-4 py-3 text-right font-semibold">Valor obtenido</th>
-                    <th class="px-4 py-3 text-right font-semibold">Avance Tipo I</th>
-                    <th class="px-4 py-3 text-left font-semibold">Estado</th>
-                    <th class="px-4 py-3 text-left font-semibold">Alerta</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-                {% for fila in seguimiento %}
-                <tr class="hover:bg-slate-50">
-                    <td class="px-4 py-3">
-                        <div class="font-semibold text-brand-700">{{ fila.codigo }}</div>
-                        <div class="max-w-xl text-xs text-slate-500 leading-relaxed">{{ fila.nombre_indicador }}</div>
-                    </td>
-                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.meta_cierre) if fila.meta_cierre is not none else "—" }}</td>
-                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.meta_anual) if fila.meta_anual is not none else "—" }}</td>
-                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.valor_cierre) if fila.valor_cierre is not none else "—" }}</td>
-                    <td class="px-4 py-3 text-right font-semibold tabular-nums">
-                        {{ "%.2f%%"|format(fila.avance_tipo_1_vista) if fila.avance_tipo_1_vista is not none else "—" }}
-                    </td>
-                    <td class="px-4 py-3">
-                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.estado.clase }}">
-                            {{ fila.estado.nombre }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3">
-                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.alerta.clase }}">
-                            {{ fila.alerta.texto }}
-                        </span>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-400">
-                        No hay indicadores activos para este periodo.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+{# ── Detalle por estado ──────────────────────────────────────────── #}
+<div class="mt-8" id="detalle-estado">
+    <div class="mb-4">
+        <h2 class="text-base font-semibold text-slate-900">Detalle por estado</h2>
+        <p class="mt-1 text-sm text-slate-500">Haz clic en una tarjeta para ir directo al bloque correspondiente.</p>
+    </div>
+    <div class="space-y-8">
+        {{ estado_block("detalle-riesgo", "Riesgo", "border-red-200 bg-red-50 text-red-700", ns.riesgo, "No hay indicadores en riesgo para este periodo.") }}
+        {{ estado_block("detalle-proceso", "En proceso", "border-amber-200 bg-amber-50 text-amber-700", ns.proceso, "No hay indicadores en proceso para este periodo.") }}
+        {{ estado_block("detalle-concluido", "Concluido", "border-emerald-200 bg-emerald-50 text-emerald-700", ns.concluido, "No hay indicadores concluidos para este periodo.") }}
     </div>
 </div>
 
@@ -247,6 +234,19 @@ Chart.defaults.font.family = "'Epunda Sans', system-ui, sans-serif";
 Chart.defaults.font.size = 12;
 Chart.defaults.color = '#64748b';
 
+const barLoadAnimation = {
+    duration: 1100,
+    easing: "easeOutQuart",
+    delay: (context) => context.type === "data" ? context.dataIndex * 120 : 0,
+    from: 0
+};
+
+const lineLoadAnimation = {
+    duration: 900,
+    easing: "easeOutCubic",
+    delay: (context) => context.type === "data" ? context.dataIndex * 80 : 0
+};
+
 if (barValues.length) {
     new Chart(document.getElementById("barChart"), {
         type: "bar",
@@ -254,7 +254,18 @@ if (barValues.length) {
             labels: barLabels,
             datasets: [{ label: "Avance Tipo I", data: barValues, backgroundColor: "#1d4ed8", borderRadius: 4 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, grid: { color: '#f1f5f9' } } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: barLoadAnimation,
+            animations: {
+                y: {
+                    from: 0
+                }
+            },
+            scales: { y: { beginAtZero: true, max: 100, grid: { color: '#f1f5f9' } } },
+            plugins: { tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.parsed.y ?? 0}%` } } }
+        }
     });
 }
 
@@ -268,7 +279,12 @@ new Chart(document.getElementById("lineChart"), {
             { label: "Meta anual promedio", data: lineMetaAnualValues, borderColor: "#94a3b8", borderDash: [6, 4], pointRadius: 0, tension: 0, borderWidth: 1.5 }
         ]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } } } }
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: lineLoadAnimation,
+        scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } } }
+    }
 });
 
 new Chart(document.getElementById("donutChart"), {
@@ -277,7 +293,17 @@ new Chart(document.getElementById("donutChart"), {
         labels: ["Concluido", "En seguimiento", "Crítico", "Sin dato"],
         datasets: [{ data: donutValues, backgroundColor: ["#10b981", "#f59e0b", "#ef4444", "#cbd5e1"], borderWidth: 0 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 16 } } } }
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+            animateRotate: true,
+            animateScale: true,
+            duration: 1000,
+            easing: "easeOutQuart"
+        },
+        plugins: { legend: { position: 'bottom', labels: { padding: 16 } } }
+    }
 });
 </script>
 {% endblock %}

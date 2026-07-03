@@ -15,8 +15,18 @@
                 <p class="text-sm text-slate-500" id="form-subtitle">Completa los datos principales para activar el seguimiento.</p>
             </div>
         </div>
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
-            {{ input("codigo", "Código", width="lg:col-span-1") }}
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <label class="block lg:col-span-2">
+                <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Acción Estratégica</span>
+                <select name="accion_estrategica_id" id="accion_estrategica_id" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+                    {% for acc in acciones %}
+                        <option value="{{ acc.id }}">{{ acc.nombre_accion }} (Obj: {{ acc.objetivo_nombre }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+            {{ input("codigo", "Código") }}
+        </div>
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <label class="block">
                 <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Prioridad</span>
                 <select name="prioridad" id="prioridad" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
@@ -62,18 +72,20 @@
         <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
                 <th class="px-4 py-3 text-left font-bold">Código</th>
+                <th class="px-4 py-3 text-left font-bold">Acción Estratégica</th>
                 <th class="px-4 py-3 text-left font-bold">Nombre</th>
                 <th class="px-4 py-3 text-left font-bold">Prioridad</th>
                 <th class="px-4 py-3 text-left font-bold">Sentido</th>
                 <th class="px-4 py-3 text-left font-bold">Agregación</th>
                 <th class="px-4 py-3 text-left font-bold">Estado</th>
-                <th class="px-4 py-3 text-right font-bold">Accion</th>
+                <th class="px-4 py-3 text-right font-bold">Acción</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-slate-200">
             {% for indicador in indicadores %}
                 <tr class="transition hover:bg-slate-50/80">
                     <td class="px-4 py-3 font-semibold text-brand-700">{{ indicador.codigo }}</td>
+                    <td class="px-4 py-3 text-slate-500 font-medium">{{ indicador.accion_nombre }}</td>
                     <td class="px-4 py-3">{{ indicador.nombre_indicador }}</td>
                     <td class="px-4 py-3">{{ indicador.prioridad }}</td>
                     <td class="px-4 py-3">{{ indicador.sentido_esperado }}</td>
@@ -88,6 +100,7 @@
                             <button type="button"
                                     class="edit-indicador inline-flex items-center justify-center rounded-lg bg-brand-700 p-2 text-white shadow-sm hover:bg-brand-800 active:scale-[0.98] transition"
                                     data-id="{{ indicador.id }}"
+                                    data-accion-id="{{ indicador.accion_estrategica_id }}"
                                     data-codigo="{{ indicador.codigo }}"
                                     data-nombre="{{ indicador.nombre_indicador }}"
                                     data-prioridad="{{ indicador.prioridad }}"
@@ -107,7 +120,7 @@
                 </tr>
             {% else %}
                 <tr>
-                    <td colspan="7" class="px-4 py-10 text-center text-sm font-medium text-slate-500">No hay indicadores registrados.</td>
+                    <td colspan="8" class="px-4 py-10 text-center text-sm font-medium text-slate-500">No hay indicadores registrados.</td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -133,6 +146,7 @@ function setFormModeCreate() {
 document.querySelectorAll(".edit-indicador").forEach((button) => {
     button.addEventListener("click", () => {
         document.getElementById("indicador-id").value = button.dataset.id;
+        form.elements.accion_estrategica_id.value = button.dataset.accionId;
         form.elements.codigo.value = button.dataset.codigo;
         form.elements.nombre_indicador.value = button.dataset.nombre;
         form.elements.prioridad.value = button.dataset.prioridad;

@@ -33,3 +33,11 @@ def execute(query, params=None):
         cursor.execute(query, params or ())
         conn.commit()
         return cursor.lastrowid
+
+
+def execute_many(query, params):
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.executemany(query, params)
+        conn.commit()
+        return cursor.rowcount

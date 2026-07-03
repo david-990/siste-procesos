@@ -1,17 +1,50 @@
 from calendar import monthrange
 from datetime import date
+from secrets import token_urlsafe
+from time import monotonic
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, g, redirect, render_template, request, session, url_for
+import mysql.connector
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import repositories as repo
+from app import services
 
 
 bp = Blueprint("main", __name__)
+PUBLIC_ENDPOINTS = {"main.login", "static"}
+ADMIN_ENDPOINTS = {
+    "main.objetivos",
+    "main.objetivo_eliminar",
+    "main.acciones",
+    "main.accion_eliminar",
+    "main.metas_anuales",
+    "main.meta_anual_eliminar",
+    "main.indicadores",
+    "main.indicador_estado",
+    "main.indicador_eliminar",
+    "main.lineas_base",
+    "main.linea_base_eliminar",
+    "main.metas_valores",
+}
+LOGIN_ATTEMPT_LIMIT = 5
+LOGIN_ATTEMPT_WINDOW_SECONDS = 300
+_LOGIN_ATTEMPTS = {}
+
+
+def _safe_int(value, default=None):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def _float_value(name):
     value = request.form.get(name, "").strip().replace(",", ".")
-    return float(value) if value else None
+    try:
+        return float(value) if value else None
+    except ValueError:
+        return None
 
 
 def _optional_value(name):
@@ -51,13 +84,13 @@ def _alerta_cierre(gestion_nombre, mes_fin):
     cierre = date(anio, int(mes_fin), ultimo_dia)
     dias = (cierre - date.today()).days
     if dias > 0:
-        texto = f"Faltan {dias} dias para el cierre"
+        texto = f"Faltan {dias} días para el cierre"
         clase = "bg-blue-50 text-blue-700 border-blue-200"
     elif dias == 0:
         texto = "El periodo cierra hoy"
         clase = "bg-amber-50 text-amber-700 border-amber-200"
     else:
-        texto = f"Cerrado hace {abs(dias)} dias"
+        texto = f"Cerrado hace {abs(dias)} días"
         clase = "bg-slate-100 text-slate-600 border-slate-200"
     return {"dias": dias, "fecha": cierre, "texto": texto, "clase": clase}
 
@@ -73,10 +106,131 @@ def _alerta_por_estado(estado, gestion_nombre, mes_fin):
     return _alerta_cierre(gestion_nombre, mes_fin)
 
 
-def _limitar_porcentaje(valor):
-    if valor is None:
+def _csrf_token():
+    token = session.get("_csrf_token")
+    if not token:
+        token = token_urlsafe(32)
+        session["_csrf_token"] = token
+    return token
+
+
+@bp.app_context_processor
+def inject_globals():
+    return {"csrf_token": _csrf_token, "current_user": getattr(g, "current_user", None)}
+
+
+@bp.before_app_request
+def protect_requests():
+    if request.endpoint is None:
         return None
-    return min(float(valor), 100)
+    if request.method == "POST" and (
+        not request.form.get("_csrf_token")
+        or request.form.get("_csrf_token") != session.get("_csrf_token")
+    ):
+        abort(400)
+    if request.endpoint not in PUBLIC_ENDPOINTS and not session.get("user_id"):
+        return redirect(url_for("main.login", next=request.full_path))
+    try:
+        g.current_user = repo.get_user_by_id(session["user_id"]) if session.get("user_id") else None
+    except mysql.connector.Error:
+        g.current_user = None
+        raise
+    if request.endpoint in ADMIN_ENDPOINTS and (not g.current_user or g.current_user["role"] != "ADMIN"):
+        abort(403)
+    if request.endpoint == "main.avances" and request.method == "POST" and g.current_user["role"] != "ADMIN":
+        abort(403)
+
+
+def _require_data(*collections):
+    return all(collections)
+
+
+def _empty_state(message):
+    flash(message)
+    return render_template("empty_state.html", message=message)
+
+
+def _safe_next_url(value):
+    return value if value and value.startswith("/") and not value.startswith("//") else url_for("main.panel")
+
+
+def _login_key(username):
+    return f"{request.remote_addr or 'local'}:{username.lower()}"
+
+
+def _login_rate_limited(username):
+    attempts = [
+        attempt
+        for attempt in _LOGIN_ATTEMPTS.get(_login_key(username), [])
+        if monotonic() - attempt < LOGIN_ATTEMPT_WINDOW_SECONDS
+    ]
+    _LOGIN_ATTEMPTS[_login_key(username)] = attempts
+    return len(attempts) >= LOGIN_ATTEMPT_LIMIT
+
+
+def _record_failed_login(username):
+    key = _login_key(username)
+    _LOGIN_ATTEMPTS.setdefault(key, []).append(monotonic())
+
+
+def _clear_login_attempts(username):
+    _LOGIN_ATTEMPTS.pop(_login_key(username), None)
+
+
+@bp.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("user_id"):
+        return redirect(url_for("main.panel"))
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        if _login_rate_limited(username):
+            flash("Demasiados intentos. Inténtalo nuevamente en unos minutos.")
+            return render_template("login.html"), 429
+        user = repo.get_user_by_username(username)
+        if user and check_password_hash(user["password_hash"], password):
+            session.clear()
+            session["user_id"] = user["id"]
+            session["_csrf_token"] = token_urlsafe(32)
+            _clear_login_attempts(username)
+            return redirect(_safe_next_url(request.args.get("next")))
+        _record_failed_login(username)
+        flash("Usuario o clave incorrectos.")
+
+    return render_template("login.html")
+
+
+@bp.post("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("main.login"))
+
+
+@bp.route("/password", methods=["GET", "POST"])
+def change_password():
+    user = g.current_user
+    if not user:
+        session.clear()
+        return redirect(url_for("main.login"))
+    if request.method == "POST":
+        current_password = request.form.get("current_password", "")
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        db_user = repo.get_user_by_username(user["username"])
+
+        if not db_user or not check_password_hash(db_user["password_hash"], current_password):
+            flash("La clave actual no es correcta.")
+        elif len(new_password) < 8:
+            flash("La nueva clave debe tener al menos 8 caracteres.")
+        elif new_password != confirm_password:
+            flash("La confirmación de clave no coincide.")
+        else:
+            repo.update_user_password(user["id"], generate_password_hash(new_password))
+            flash("Clave actualizada.")
+            return redirect(url_for("main.panel"))
+
+    return render_template("password.html")
 
 
 @bp.route("/")
@@ -87,9 +241,13 @@ def index():
 @bp.route("/panel")
 def panel():
     gestiones = repo.get_gestiones()
-    gestion_id = int(request.args.get("gestion_id") or repo.get_default_gestion_id())
+    if not _require_data(gestiones):
+        return _empty_state("No hay gestiones registradas.")
+    gestion_id = _safe_int(request.args.get("gestion_id"), repo.get_default_gestion_id())
     periodos = repo.get_periodos(gestion_id)
-    periodo_id = int(request.args.get("periodo_id") or periodos[0]["id"])
+    if not _require_data(periodos):
+        return _empty_state("No hay periodos registrados para la gestión seleccionada.")
+    periodo_id = _safe_int(request.args.get("periodo_id"), periodos[0]["id"])
     periodo = next((p for p in periodos if p["id"] == periodo_id), periodos[0])
     gestion = next((g for g in gestiones if g["id"] == gestion_id), gestiones[0])
     seguimiento = repo.get_panel_seguimiento(gestion_id, periodo_id)
@@ -100,23 +258,17 @@ def panel():
         avance = float(fila["avance_tipo_1"]) if fila["avance_tipo_1"] is not None else None
         fila["estado"] = _estado_avance(avance)
         fila["alerta"] = _alerta_por_estado(fila["estado"], gestion["nombre"], periodo["mes_fin"])
-        fila["avance_tipo_1_vista"] = _limitar_porcentaje(avance)
+        fila["avance_tipo_1_vista"] = services.limitar_porcentaje(avance)
 
     total_indicadores = len(seguimiento)
     resultados = [float(f["avance_tipo_1"]) for f in seguimiento if f["avance_tipo_1"] is not None]
-    resultados_vista = [_limitar_porcentaje(valor) for valor in resultados]
+    resultados_vista = [services.limitar_porcentaje(valor) for valor in resultados]
     avance_promedio = sum(resultados_vista) / len(resultados_vista) if resultados_vista else None
 
     conteo_estados = {"Critico": 0, "En seguimiento": 0, "Concluido": 0, "Sin dato": 0}
     for fila in seguimiento:
         conteo_estados[fila["estado"]["nombre"]] += 1
 
-    alertas_activas = conteo_estados["Critico"] + conteo_estados["En seguimiento"]
-    pendientes = [
-        fila
-        for fila in seguimiento
-        if fila["estado"]["nombre"] != "Concluido"
-    ]
     return render_template(
         "panel.html",
         gestiones=gestiones,
@@ -127,14 +279,10 @@ def panel():
         alerta_cierre=alerta_cierre,
         total_indicadores=total_indicadores,
         evaluados=len(resultados),
-        sin_dato=conteo_estados["Sin dato"],
         avance_promedio=avance_promedio,
-        alertas_activas=alertas_activas,
-        concluidos=conteo_estados["Concluido"],
-        pendientes=pendientes,
         seguimiento=seguimiento,
         bar_labels=[f["codigo"] for f in seguimiento if f["avance_tipo_1"] is not None],
-        bar_values=[round(_limitar_porcentaje(f["avance_tipo_1"]), 2) for f in seguimiento if f["avance_tipo_1"] is not None],
+        bar_values=[round(services.limitar_porcentaje(f["avance_tipo_1"]), 2) for f in seguimiento if f["avance_tipo_1"] is not None],
         line_labels=[f["mes"] for f in evolucion],
         line_meta_values=[float(f["meta_promedio"]) if f["meta_promedio"] is not None else None for f in evolucion],
         line_meta_anual_values=[float(f["meta_anual_promedio"]) if f["meta_anual_promedio"] is not None else None for f in evolucion],
@@ -148,26 +296,51 @@ def panel():
     )
 
 
-@bp.route("/acciones", methods=["GET", "POST"])
-def acciones():
+@bp.route("/objetivos", methods=["GET", "POST"])
+def objetivos():
     if request.method == "POST":
-        repo.save_accion(
+        repo.save_objetivo(
             {
-                "indicador_id": int(request.form["indicador_id"]),
-                "codigo": request.form["codigo"].strip(),
-                "nombre_accion": request.form["nombre_accion"].strip(),
-                "descripcion": _optional_value("descripcion"),
-                "fecha_inicio": _optional_value("fecha_inicio"),
-                "fecha_fin": _optional_value("fecha_fin"),
+                "nombre": request.form["nombre"].strip(),
             },
             request.form.get("id") or None,
         )
-        flash("Accion guardada.")
+        flash("Objetivo estratégico guardado.")
+        return redirect(url_for("main.objetivos"))
+
+    return render_template(
+        "objetivos_estrategicos.html",
+        objetivos=repo.get_objetivos(),
+    )
+
+
+@bp.post("/objetivos/<int:objetivo_id>/eliminar")
+def objetivo_eliminar(objetivo_id):
+    repo.delete_objetivo(objetivo_id)
+    flash("Objetivo estratégico eliminado.")
+    return redirect(url_for("main.objetivos"))
+
+
+@bp.route("/acciones", methods=["GET", "POST"])
+def acciones():
+    if request.method == "POST":
+        objetivo_estrategico_id = _safe_int(request.form.get("objetivo_estrategico_id"))
+        if not objetivo_estrategico_id:
+            flash("Selecciona un objetivo estratégico válido.")
+            return redirect(url_for("main.acciones"))
+        repo.save_accion(
+            {
+                "objetivo_estrategico_id": objetivo_estrategico_id,
+                "nombre": request.form["nombre"].strip(),
+            },
+            request.form.get("id") or None,
+        )
+        flash("Acción estratégica guardada.")
         return redirect(url_for("main.acciones"))
 
     return render_template(
         "acciones.html",
-        indicadores=repo.get_indicadores(),
+        objetivos=repo.get_objetivos(),
         acciones=repo.get_acciones(),
     )
 
@@ -175,7 +348,7 @@ def acciones():
 @bp.post("/acciones/<int:accion_id>/eliminar")
 def accion_eliminar(accion_id):
     repo.delete_accion(accion_id)
-    flash("Accion eliminada.")
+    flash("Acción estratégica eliminada.")
     return redirect(url_for("main.acciones"))
 
 
@@ -183,21 +356,25 @@ def accion_eliminar(accion_id):
 def metas_anuales():
     indicadores = repo.get_indicadores()
     gestiones = repo.get_gestiones()
+    if not _require_data(indicadores, gestiones):
+        return _empty_state("Registra indicadores y gestiones antes de cargar metas anuales.")
 
     if request.method == "POST":
         meta_anual = _float_value("meta_anual")
+        indicador_id = _safe_int(request.form.get("indicador_id"))
+        gestion_id = _safe_int(request.form.get("gestion_id"))
         if meta_anual is not None:
-            if 0 <= meta_anual <= 100:
+            if indicador_id and gestion_id and 0 <= meta_anual <= 100:
                 repo.save_meta_anual(
-                    int(request.form["indicador_id"]),
-                    int(request.form["gestion_id"]),
+                    indicador_id,
+                    gestion_id,
                     meta_anual,
                 )
                 flash("Meta anual guardada.")
             else:
                 flash("La meta anual debe estar entre 0 y 100.")
         else:
-            flash("Ingresa una meta anual valida.")
+            flash("Ingresa una meta anual válida.")
         return redirect(url_for("main.metas_anuales"))
 
     return render_template(
@@ -220,11 +397,20 @@ def meta_anual_eliminar(meta_anual_id):
 @bp.route("/indicadores", methods=["GET", "POST"])
 def indicadores():
     if request.method == "POST":
+        prioridad = _safe_int(request.form.get("prioridad"))
+        accion_estrategica_id = _safe_int(request.form.get("accion_estrategica_id"))
+        if prioridad not in (1, 2, 3):
+            flash("La prioridad debe estar entre 1 y 3.")
+            return redirect(url_for("main.indicadores"))
+        if not accion_estrategica_id:
+            flash("Selecciona una acción estratégica válida.")
+            return redirect(url_for("main.indicadores"))
         repo.save_indicador(
             {
+                "accion_estrategica_id": accion_estrategica_id,
                 "codigo": request.form["codigo"].strip(),
                 "nombre_indicador": request.form["nombre_indicador"].strip(),
-                "prioridad": int(request.form["prioridad"]),
+                "prioridad": prioridad,
                 "sentido_esperado": request.form["sentido_esperado"],
                 "formula": request.form["formula"].strip(),
                 "tipo_agregacion": request.form["tipo_agregacion"],
@@ -237,12 +423,17 @@ def indicadores():
     return render_template(
         "indicadores.html",
         indicadores=repo.get_indicadores(include_inactive=True),
+        acciones=repo.get_acciones(),
     )
 
 
 @bp.post("/indicadores/<int:indicador_id>/estado")
 def indicador_estado(indicador_id):
-    repo.toggle_indicador(indicador_id, int(request.form["estado"]))
+    estado = _safe_int(request.form.get("estado"))
+    if estado not in (0, 1):
+        flash("Estado inválido.")
+        return redirect(url_for("main.indicadores"))
+    repo.toggle_indicador(indicador_id, estado)
     return redirect(url_for("main.indicadores"))
 
 
@@ -255,26 +446,33 @@ def indicador_eliminar(indicador_id):
 
 @bp.route("/lineas-base", methods=["GET", "POST"])
 def lineas_base():
+    indicadores = repo.get_indicadores()
+    gestiones = repo.get_gestiones()
+    if not _require_data(indicadores, gestiones):
+        return _empty_state("Registra indicadores y gestiones antes de cargar líneas base.")
+
     if request.method == "POST":
         linea_base = _float_value("linea_base")
+        indicador_id = _safe_int(request.form.get("indicador_id"))
+        gestion_id = _safe_int(request.form.get("gestion_id"))
         if linea_base is not None:
-            if 0 <= linea_base <= 100:
+            if indicador_id and gestion_id and 0 <= linea_base <= 100:
                 repo.save_linea_base(
-                    int(request.form["indicador_id"]),
-                    int(request.form["gestion_id"]),
+                    indicador_id,
+                    gestion_id,
                     linea_base,
                 )
-                flash("Linea base guardada.")
+                flash("Línea base guardada.")
             else:
-                flash("La linea base debe estar entre 0 y 100.")
+                flash("La línea base debe estar entre 0 y 100.")
         else:
-            flash("Ingresa una linea base valida.")
+            flash("Ingresa una línea base válida.")
         return redirect(url_for("main.lineas_base"))
 
     return render_template(
         "lineas_base.html",
-        indicadores=repo.get_indicadores(),
-        gestiones=repo.get_gestiones(),
+        indicadores=indicadores,
+        gestiones=gestiones,
         gestion_id=repo.get_default_gestion_id(),
         lineas=repo.get_lineas_base(),
     )
@@ -292,32 +490,56 @@ def linea_base_eliminar(linea_base_id):
 def metas_valores():
     indicadores = repo.get_indicadores()
     gestiones = repo.get_gestiones()
-    gestion_id = int(
+    if not _require_data(indicadores, gestiones):
+        return _empty_state("Registra indicadores y gestiones antes de cargar metas y valores.")
+
+    gestion_id = _safe_int(
         request.form.get("gestion_id")
         or request.args.get("gestion_id")
-        or repo.get_default_gestion_id()
+        or repo.get_default_gestion_id(),
+        repo.get_default_gestion_id(),
     )
-    indicador_id = int(
+    indicador_id = _safe_int(
         request.form.get("indicador_id")
         or request.args.get("indicador_id")
-        or indicadores[0]["id"]
+        or indicadores[0]["id"],
+        indicadores[0]["id"],
     )
 
+    from datetime import datetime
+    now = datetime.now()
+    selected_gestion = next((g for g in gestiones if g["id"] == gestion_id), None)
+    gestion_year = int(selected_gestion["nombre"]) if selected_gestion else now.year
+
     if request.method == "POST":
-        mes_id = int(request.form["mes_id"])
+        mes_id = _safe_int(request.form.get("mes_id"))
         meta = _float_value("meta_mensual")
         valor = _float_value("valor_obtenido")
         errors = []
-        if meta is not None:
-            if 0 <= meta <= 100:
-                repo.save_meta(indicador_id, gestion_id, mes_id, meta)
-            else:
-                errors.append("La meta mensual debe estar entre 0 y 100.")
-        if valor is not None:
-            if 0 <= valor <= 100:
-                repo.save_valor(indicador_id, gestion_id, mes_id, valor)
-            else:
-                errors.append("El valor obtenido debe estar entre 0 y 100.")
+        if not mes_id:
+            errors.append("Selecciona un mes válido.")
+        
+        # Validar si el mes ya ha transcurrido
+        if mes_id:
+            mes = next((m for m in repo.get_meses() if m["id"] == mes_id), None)
+            if mes:
+                numero_mes = mes["numero_mes"]
+                ha_pasado = (gestion_year < now.year) or (gestion_year == now.year and numero_mes < now.month)
+                if ha_pasado:
+                    errors.append("No se pueden modificar metas o valores de meses ya transcurridos.")
+
+        if not errors:
+            if meta is not None:
+                if 0 <= meta <= 100:
+                    repo.save_meta(indicador_id, gestion_id, mes_id, meta)
+                else:
+                    errors.append("La meta mensual debe estar entre 0 y 100.")
+            if valor is not None:
+                if 0 <= valor <= 100:
+                    repo.save_valor(indicador_id, gestion_id, mes_id, valor)
+                else:
+                    errors.append("El valor obtenido debe estar entre 0 y 100.")
+
         if errors:
             for err in errors:
                 flash(err)
@@ -326,35 +548,26 @@ def metas_valores():
         return redirect(url_for("main.metas_valores", indicador_id=indicador_id, gestion_id=gestion_id))
 
     registros = repo.get_metas_valores(indicador_id, gestion_id)
+    for r in registros:
+        r["ha_pasado"] = (gestion_year < now.year) or (gestion_year == now.year and r["numero_mes"] < now.month)
+
+    meses = repo.get_meses()
+    for m in meses:
+        m["ha_pasado"] = (gestion_year < now.year) or (gestion_year == now.year and m["numero_mes"] < now.month)
+
     meta_anual = repo.get_meta_anual(indicador_id, gestion_id)
-    chart_labels = [row["mes"] for row in registros]
-    chart_metas = [float(row["meta_mensual"]) if row["meta_mensual"] is not None else None for row in registros]
-    chart_valores = [float(row["valor_obtenido"]) if row["valor_obtenido"] is not None else None for row in registros]
-    chart_meta_anual = [
-        float(meta_anual["meta_anual"]) if meta_anual else None
-        for _ in registros
-    ]
-    chart_cumplimiento = [
-        round(_limitar_porcentaje(float(row["valor_obtenido"]) / float(row["meta_mensual"]) * 100), 2)
-        if row["meta_mensual"] not in (None, 0) and row["valor_obtenido"] is not None
-        else None
-        for row in registros
-    ]
+    chart_data = services.build_metas_chart(registros, meta_anual)
 
     return render_template(
         "metas_valores.html",
         indicadores=indicadores,
         gestiones=gestiones,
-        meses=repo.get_meses(),
+        meses=meses,
         registros=registros,
         meta_anual=meta_anual,
         indicador_id=indicador_id,
         gestion_id=gestion_id,
-        chart_labels=chart_labels,
-        chart_metas=chart_metas,
-        chart_valores=chart_valores,
-        chart_meta_anual=chart_meta_anual,
-        chart_cumplimiento=chart_cumplimiento,
+        **chart_data,
     )
 
 
@@ -362,45 +575,26 @@ def metas_valores():
 def resumen():
     indicadores = repo.get_indicadores()
     gestiones = repo.get_gestiones()
-    gestion_id = int(request.args.get("gestion_id") or repo.get_default_gestion_id())
+    if not _require_data(indicadores, gestiones):
+        return _empty_state("Registra indicadores y gestiones antes de ver el resumen.")
+
+    gestion_id = _safe_int(request.args.get("gestion_id"), repo.get_default_gestion_id())
     periodos = repo.get_periodos(gestion_id)
-    indicador_id = int(request.args.get("indicador_id") or indicadores[0]["id"])
-    periodo_id = int(request.args.get("periodo_id") or periodos[0]["id"])
+    if not _require_data(periodos):
+        return _empty_state("No hay periodos registrados para la gestión seleccionada.")
+    indicador_id = _safe_int(request.args.get("indicador_id"), indicadores[0]["id"])
+    periodo_id = _safe_int(request.args.get("periodo_id"), periodos[0]["id"])
     periodo = next((p for p in periodos if p["id"] == periodo_id), periodos[0])
     gestion = next((g for g in gestiones if g["id"] == gestion_id), gestiones[0])
     indicador = repo.get_indicador(indicador_id)
     registros = repo.get_metas_valores(indicador_id, gestion_id, periodo_id)
-
-    metas = [float(r["meta_mensual"]) for r in registros if r["meta_mensual"] is not None]
-    valores = [float(r["valor_obtenido"]) for r in registros if r["valor_obtenido"] is not None]
-    if indicador["tipo_agregacion"] == "NO_AGREGABLE":
-        meta_periodo = float(registros[-1]["meta_mensual"]) if registros and registros[-1]["meta_mensual"] is not None else None
-        valor_periodo = float(registros[-1]["valor_obtenido"]) if registros and registros[-1]["valor_obtenido"] is not None else None
-    else:
-        meta_periodo = sum(metas) if metas else None
-        valor_periodo = sum(valores) if valores else None
-
-    cumplimiento = None
-    if meta_periodo and valor_periodo is not None:
-        cumplimiento = _limitar_porcentaje(valor_periodo / meta_periodo * 100)
+    resumen_periodo = services.summarize_period(indicador, registros)
+    cumplimiento = resumen_periodo["cumplimiento"]
 
     estado_avance = _estado_avance(cumplimiento)
     alerta_cierre = _alerta_por_estado(estado_avance, gestion["nombre"], periodo["mes_fin"])
-
-    chart_labels = [row["mes"] for row in registros]
-    chart_metas = [float(row["meta_mensual"]) if row["meta_mensual"] is not None else None for row in registros]
-    chart_valores = [float(row["valor_obtenido"]) if row["valor_obtenido"] is not None else None for row in registros]
     meta_anual = repo.get_meta_anual(indicador_id, gestion_id)
-    chart_meta_anual = [
-        float(meta_anual["meta_anual"]) if meta_anual else None
-        for _ in registros
-    ]
-    chart_cumplimiento = [
-        round(_limitar_porcentaje(float(row["valor_obtenido"]) / float(row["meta_mensual"]) * 100), 2)
-        if row["meta_mensual"] not in (None, 0) and row["valor_obtenido"] is not None
-        else None
-        for row in registros
-    ]
+    chart_data = services.build_metas_chart(registros, meta_anual)
 
     return render_template(
         "resumen.html",
@@ -412,17 +606,13 @@ def resumen():
         periodo_id=periodo_id,
         indicador=indicador,
         registros=registros,
-        meta_periodo=meta_periodo,
-        valor_periodo=valor_periodo,
+        meta_periodo=resumen_periodo["meta_periodo"],
+        valor_periodo=resumen_periodo["valor_periodo"],
         cumplimiento=cumplimiento,
         estado_avance=estado_avance,
         alerta_cierre=alerta_cierre,
         periodo=periodo,
-        chart_labels=chart_labels,
-        chart_metas=chart_metas,
-        chart_valores=chart_valores,
-        chart_meta_anual=chart_meta_anual,
-        chart_cumplimiento=chart_cumplimiento,
+        **chart_data,
     )
 
 
@@ -430,15 +620,24 @@ def resumen():
 def avances():
     indicadores = repo.get_indicadores()
     gestiones = repo.get_gestiones()
-    gestion_id = int(request.values.get("gestion_id") or repo.get_default_gestion_id())
+    if not _require_data(indicadores, gestiones):
+        return _empty_state("Registra indicadores y gestiones antes de calcular avances.")
+
+    gestion_id = _safe_int(request.values.get("gestion_id"), repo.get_default_gestion_id())
     periodos = repo.get_periodos(gestion_id)
+    if not _require_data(periodos):
+        return _empty_state("No hay periodos registrados para la gestión seleccionada.")
     indicador_value = request.values.get("indicador_id") or ""
-    indicador_id = int(indicador_value) if indicador_value else None
+    indicador_id = _safe_int(indicador_value) if indicador_value else None
 
     if request.method == "POST":
+        periodo_id = _safe_int(request.form.get("periodo_id"))
+        if not periodo_id:
+            flash("Selecciona un periodo válido.")
+            return redirect(url_for("main.avances", indicador_id=indicador_value, gestion_id=gestion_id))
         resultado = repo.calcular_avance_tipo_1(
             gestion_id,
-            int(request.form["periodo_id"]),
+            periodo_id,
         )
         if resultado["periodo"]:
             flash(
@@ -448,15 +647,29 @@ def avances():
                 f"Omitidos: {resultado['omitidos']}."
             )
         else:
-            flash("No se pudo calcular: el periodo no pertenece a la gestion seleccionada.")
+            flash("No se pudo calcular: el periodo no pertenece a la gestión seleccionada.")
         return redirect(url_for("main.avances", indicador_id=indicador_value, gestion_id=gestion_id))
 
     avances = repo.get_avances(gestion_id, indicador_id)
     for avance in avances:
         resultado = float(avance["resultado"])
-        avance["resultado_vista"] = _limitar_porcentaje(resultado)
+        avance["resultado_vista"] = services.limitar_porcentaje(resultado)
         avance["estado"] = _estado_avance(resultado)
         avance["alerta"] = _alerta_por_estado(avance["estado"], avance["gestion"], avance["mes_fin"])
+
+    avances_acciones = repo.get_avances_acciones(gestion_id)
+    for aa in avances_acciones:
+        res = float(aa["resultado"])
+        aa["resultado_vista"] = services.limitar_porcentaje(res)
+        aa["estado"] = _estado_avance(res)
+        aa["alerta"] = _alerta_por_estado(aa["estado"], aa["gestion"], aa["mes_fin"])
+
+    avances_objetivos = repo.get_avances_objetivos(gestion_id)
+    for ao in avances_objetivos:
+        res = float(ao["resultado"])
+        ao["resultado_vista"] = services.limitar_porcentaje(res)
+        ao["estado"] = _estado_avance(res)
+        ao["alerta"] = _alerta_por_estado(ao["estado"], ao["gestion"], ao["mes_fin"])
 
     return render_template(
         "avances.html",
@@ -466,4 +679,6 @@ def avances():
         indicador_id=indicador_id,
         gestion_id=gestion_id,
         avances=avances,
+        avances_acciones=avances_acciones,
+        avances_objetivos=avances_objetivos,
     )

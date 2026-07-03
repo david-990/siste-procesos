@@ -3,14 +3,44 @@
   {% from "components.html" import icon %}
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Sistema de seguimiento y gestión de indicadores de procesos." />
-    <title>{% block title %}Sistema de Procesos{% endblock %} · Gestión de Indicadores</title>
-    <link href="https://fonts.googleapis.com/css2?family=Epunda+Sans:wght@300;400;500;600;700;800;900&family=Epunda+Slab:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <meta
+      name="description"
+      content="Sistema de seguimiento y gestión de indicadores de procesos."
+    />
+    <title>
+      {% block title %}Sistema de Procesos{% endblock %} · Gestión de
+      Indicadores
+    </title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Epunda+Sans:wght@300;400;500;600;700;800;900&family=Epunda+Slab:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
     <style>
-      body { font-family: 'Epunda Sans', system-ui, -apple-system, sans-serif; }
-      h1, h2, h3, h4, h5, h6, th, .font-bold, .font-semibold { font-family: 'Epunda Slab', Georgia, serif; }
-      #sidebar { transition: transform 0.2s ease; }
+      body {
+        font-family:
+          "Epunda Sans",
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      th,
+      .font-bold,
+      .font-semibold {
+        font-family: "Epunda Slab", Georgia, serif;
+      }
+      #sidebar {
+        transition: transform 0.2s ease;
+      }
     </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -30,8 +60,8 @@
               },
             },
             fontFamily: {
-              sans: ['Epunda Sans', 'system-ui', 'sans-serif'],
-              slab: ['Epunda Slab', 'Georgia', 'serif'],
+              sans: ["Epunda Sans", "system-ui", "sans-serif"],
+              slab: ["Epunda Slab", "Georgia", "serif"],
             },
           },
         },
@@ -39,11 +69,18 @@
     </script>
   </head>
   <body class="bg-slate-100 text-slate-800 antialiased">
+    {% set auth_view = request.endpoint == "main.login" and not current_user %}
 
-    {# Overlay para cerrar sidebar en móvil #}
-    <div id="sidebar-overlay" class="fixed inset-0 z-20 bg-black/40 hidden md:hidden" onclick="toggleSidebar()"></div>
+    <div
+      class="{% if auth_view %}grid min-h-screen place-items-center px-4 py-10{% else %}min-h-screen{% endif %}"
+    >
+      {% if not auth_view %} {# Overlay para cerrar sidebar en móvil #}
+      <div
+        id="sidebar-overlay"
+        class="fixed inset-0 z-20 bg-black/40 hidden md:hidden"
+        onclick="toggleSidebar()"
+      ></div>
 
-    <div class="min-h-screen">
       <aside
         id="sidebar"
         class="fixed inset-y-0 left-0 z-30 w-72 -translate-x-full border-r border-slate-200 bg-white shadow-xl md:translate-x-0 md:shadow-none"
@@ -51,11 +88,15 @@
         <div class="flex h-full flex-col px-5 py-6">
           {# Logo y nombre #}
           <div class="flex items-center gap-3 mb-8">
-            <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-700 text-white shadow-md shadow-brand-700/20">
+            <div
+              class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-700 text-white shadow-md shadow-brand-700/20"
+            >
               {{ icon("logo", "h-5 w-5") }}
             </div>
             <div>
-              <div class="text-sm font-bold tracking-tight text-brand-900 uppercase leading-tight">
+              <div
+                class="text-sm font-bold tracking-tight text-brand-900 uppercase leading-tight"
+              >
                 Sist. Procesos
               </div>
               <div class="text-xs font-medium text-slate-400 leading-tight">
@@ -66,50 +107,65 @@
 
           {# Navegación #}
           <nav class="flex-1 space-y-0.5">
-            {% set sections = [
-              ("Monitoreo", [
-                ("panel", "Panel", "panel"),
-                ("resumen", "Resumen", "resumen"),
-                ("avances", "Avances", "avances"),
-              ]),
-              ("Configuración", [
-                ("indicadores", "Indicadores", "indicadores"),
-                ("acciones", "Acciones", "acciones"),
-                ("lineas_base", "Línea Base", "lineas_base"),
-                ("metas_anuales", "Meta Anual", "metas_anuales"),
-                ("metas_valores", "Metas y Valores", "metas_valores"),
-              ]),
-            ] %}
-            {% for section_label, items in sections %}
-              <div class="{% if not loop.first %}mt-5{% endif %}">
-                <div class="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                  {{ section_label }}
-                </div>
-                {% for endpoint, label, icon_name in items %}
-                  <a
-                    href="{{ url_for('main.' ~ endpoint) }}"
-                    onclick="closeSidebarOnMobile()"
-                    class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition duration-150 focus-visible:ring-2 focus-visible:ring-brand-200 {% if request.endpoint == 'main.' ~ endpoint %} bg-brand-700 text-white shadow-sm {% else %} text-slate-600 hover:bg-slate-100 hover:text-slate-900 {% endif %}"
-                  >
-                    <span class="grid h-6 w-6 shrink-0 place-items-center rounded-md {% if request.endpoint == 'main.' ~ endpoint %}bg-white/15 text-white{% else %}bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-slate-600{% endif %}">
-                      {{ icon(icon_name, "h-3.5 w-3.5") }}
-                    </span>
-                    <span>{{ label }}</span>
-                  </a>
-                {% endfor %}
+            {% set sections = [ ("Monitoreo", [ ("panel", "Panel", "panel"),
+            ("resumen", "Resumen", "resumen"), ("avances", "Avances",
+            "avances"), ]), ("Configuración", [ 
+             ("objetivos", "Objetivos Est.", "metas_anuales"),
+             ("acciones", "Acciones Est.", "acciones"),
+             ("indicadores", "Indicadores", "indicadores"), 
+             ("lineas_base", "Línea Base", "lineas_base"), ("metas_anuales",
+             "Meta Anual", "metas_anuales"), ("metas_valores", "Metas y Valores",
+             "metas_valores"), ("change_password", "Cambiar clave", "settings"),
+             ]), ] %} {% for section_label, items in sections %}
+            <div class="{% if not loop.first %}mt-5{% endif %}">
+              <div
+                class="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400"
+              >
+                {{ section_label }}
               </div>
+              {% for endpoint, label, icon_name in items %}
+              <a
+                href="{{ url_for('main.' ~ endpoint) }}"
+                onclick="closeSidebarOnMobile()"
+                class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium outline-none transition duration-150 focus-visible:ring-2 focus-visible:ring-brand-200 {% if request.endpoint == 'main.' ~ endpoint %} bg-brand-700 text-white shadow-sm {% else %} text-slate-600 hover:bg-slate-100 hover:text-slate-900 {% endif %}"
+              >
+                <span
+                  class="grid h-6 w-6 shrink-0 place-items-center rounded-md {% if request.endpoint == 'main.' ~ endpoint %}bg-white/15 text-white{% else %}bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-slate-600{% endif %}"
+                >
+                  {{ icon(icon_name, "h-3.5 w-3.5") }}
+                </span>
+                <span>{{ label }}</span>
+              </a>
+              {% endfor %}
+            </div>
             {% endfor %}
           </nav>
 
-          {# Footer del sidebar #}
-          <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-xs text-slate-400">
+          {# Footer del sidebar #} {% if current_user %}
+          <form
+            method="post"
+            action="{{ url_for('main.logout') }}"
+            class="mt-4"
+          >
+            <button
+              class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Salir
+            </button>
+          </form>
+          {% endif %}
+          <div
+            class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-xs text-slate-400"
+          >
             v1.0 · Flask + MySQL
           </div>
         </div>
       </aside>
 
       {# Header móvil #}
-      <header class="fixed inset-x-0 top-0 z-20 flex h-14 items-center border-b border-slate-200 bg-white px-4 shadow-sm md:hidden">
+      <header
+        class="fixed inset-x-0 top-0 z-20 flex h-14 items-center border-b border-slate-200 bg-white px-4 shadow-sm md:hidden"
+      >
         <button
           id="hamburger"
           onclick="toggleSidebar()"
@@ -117,99 +173,128 @@
           aria-label="Abrir menú"
           aria-expanded="false"
         >
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M3 12h18M3 6h18M3 18h18"/>
+          <svg
+            class="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M3 12h18M3 6h18M3 18h18" />
           </svg>
         </button>
         <div class="flex items-center gap-2">
-          <div class="grid h-7 w-7 place-items-center rounded-lg bg-brand-700 text-white">
+          <div
+            class="grid h-7 w-7 place-items-center rounded-lg bg-brand-700 text-white"
+          >
             {{ icon("logo", "h-4 w-4") }}
           </div>
-          <span class="text-sm font-bold text-brand-900 uppercase tracking-tight">Sist. Procesos</span>
+          <span
+            class="text-sm font-bold text-brand-900 uppercase tracking-tight"
+            >Sist. Procesos</span
+          >
         </div>
       </header>
+      {% endif %}
 
-      <main class="px-4 pb-10 pt-20 sm:px-6 md:ml-72 md:pt-8 lg:px-10 lg:pt-10">
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <script>
-            document.addEventListener('DOMContentLoaded', function() {
-              const messages = {{ messages | tojson }};
-              messages.forEach(msg => {
-                let icon = 'success';
-                if (msg.toLowerCase().includes('error') || msg.toLowerCase().includes('debe estar') || msg.toLowerCase().includes('no se pudo') || msg.toLowerCase().includes('valida') || msg.toLowerCase().includes('limite') || msg.toLowerCase().includes('incorrecto')) {
-                  icon = 'error';
+      <main
+        class="{% if auth_view %}w-full max-w-md{% else %}px-4 pb-10 pt-20 sm:px-6 md:ml-72 md:pt-8 lg:px-10 lg:pt-10{% endif %}"
+      >
+        {% with messages = get_flashed_messages() %} {% if messages %}
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            const messages = {{ messages | tojson }};
+            messages.forEach(msg => {
+              let icon = 'success';
+              if (msg.toLowerCase().includes('error') || msg.toLowerCase().includes('debe estar') || msg.toLowerCase().includes('no se pudo') || msg.toLowerCase().includes('válid') || msg.toLowerCase().includes('valid') || msg.toLowerCase().includes('límite') || msg.toLowerCase().includes('incorrect')) {
+                icon = 'error';
+              }
+
+              const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3500,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                  toast.addEventListener('mouseenter', Swal.stopTimer)
+                  toast.addEventListener('mouseleave', Swal.resumeTimer)
                 }
-                
-                const Toast = Swal.mixin({
-                  toast: true,
-                  position: 'top-end',
-                  showConfirmButton: false,
-                  timer: 3500,
-                  timerProgressBar: true,
-                  didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer)
-                    toast.addEventListener('mouseleave', Swal.resumeTimer)
-                  }
-                });
+              });
 
-                Toast.fire({
-                  icon: icon,
-                  title: msg,
-                  customClass: {
-                    popup: 'rounded-xl shadow-md border border-slate-100'
-                  }
-                });
+              Toast.fire({
+                icon: icon,
+                title: msg,
+                customClass: {
+                  popup: 'rounded-xl shadow-md border border-slate-100'
+                }
               });
             });
-          </script>
-        {% endif %}
-        {% endwith %}
+          });
+        </script>
+        {% endif %} {% endwith %}
 
-        <div class="mx-auto max-w-7xl">{% block content %}{% endblock %}</div>
+        <div class="{% if auth_view %}{% else %}mx-auto max-w-7xl{% endif %}">
+          {% block content %}{% endblock %}
+        </div>
       </main>
     </div>
 
     <script>
+      const csrfToken = "{{ csrf_token() }}";
+      document.addEventListener("DOMContentLoaded", function () {
+        document
+          .querySelectorAll('form[method="post"], form[method="POST"]')
+          .forEach(function (form) {
+            if (!form.querySelector('input[name="_csrf_token"]')) {
+              const input = document.createElement("input");
+              input.type = "hidden";
+              input.name = "_csrf_token";
+              input.value = csrfToken;
+              form.appendChild(input);
+            }
+          });
+      });
       function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        const hamburger = document.getElementById('hamburger');
-        const isOpen = !sidebar.classList.contains('-translate-x-full');
-        sidebar.classList.toggle('-translate-x-full', isOpen);
-        overlay.classList.toggle('hidden', isOpen);
-        hamburger.setAttribute('aria-expanded', String(!isOpen));
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("sidebar-overlay");
+        const hamburger = document.getElementById("hamburger");
+        const isOpen = !sidebar.classList.contains("-translate-x-full");
+        sidebar.classList.toggle("-translate-x-full", isOpen);
+        overlay.classList.toggle("hidden", isOpen);
+        hamburger.setAttribute("aria-expanded", String(!isOpen));
       }
       function closeSidebarOnMobile() {
         if (window.innerWidth < 768) toggleSidebar();
       }
-      document.addEventListener('submit', function (e) {
+      document.addEventListener("submit", function (e) {
         const form = e.target;
-        if (form.action && form.action.includes('/eliminar')) {
-          if (form.dataset.confirmed === 'true') {
+        if (form.action && form.action.includes("/eliminar")) {
+          if (form.dataset.confirmed === "true") {
             return;
           }
           e.preventDefault();
-          
+
           Swal.fire({
-            title: '¿Confirmar eliminación?',
-            text: 'Esta acción no se puede deshacer.',
-            icon: 'warning',
+            title: "¿Confirmar eliminación?",
+            text: "Esta acción no se puede deshacer.",
+            icon: "warning",
             showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar',
-            background: '#ffffff',
-            color: '#0f172a',
+            confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+            background: "#ffffff",
+            color: "#0f172a",
             customClass: {
-              popup: 'rounded-xl',
-              confirmButton: 'rounded-lg px-4 py-2 text-sm font-semibold',
-              cancelButton: 'rounded-lg px-4 py-2 text-sm font-semibold'
-            }
+              popup: "rounded-xl",
+              confirmButton: "rounded-lg px-4 py-2 text-sm font-semibold",
+              cancelButton: "rounded-lg px-4 py-2 text-sm font-semibold",
+            },
           }).then((result) => {
             if (result.isConfirmed) {
-              form.dataset.confirmed = 'true';
+              form.dataset.confirmed = "true";
               form.submit();
             }
           });

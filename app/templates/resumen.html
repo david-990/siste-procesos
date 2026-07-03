@@ -159,6 +159,18 @@ const metas = {{ chart_metas | tojson }};
 const valores = {{ chart_valores | tojson }};
 const metaAnual = {{ chart_meta_anual | tojson }};
 const cumplimientoMensual = {{ chart_cumplimiento | tojson }};
+const stagedBarLoad = {
+    duration: 1100,
+    easing: "easeOutQuart",
+    delay: (context) => context.type === "data" ? context.dataIndex * 110 : 0,
+    from: 0
+};
+const stagedLineLoad = {
+    duration: 900,
+    easing: "easeOutCubic",
+    delay: (context) => context.type === "data" ? context.dataIndex * 70 : 0
+};
+
 new Chart(document.getElementById("chart"), {
     type: "line",
     data: {
@@ -169,7 +181,12 @@ new Chart(document.getElementById("chart"), {
             { label: "Meta anual", data: metaAnual, borderColor: "#64748b", borderDash: [6, 6], pointRadius: 0, tension: 0 }
         ]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: stagedLineLoad,
+        scales: { y: { beginAtZero: true } }
+    }
 });
 
 new Chart(document.getElementById("cumplimientoChart"), {
@@ -190,6 +207,12 @@ new Chart(document.getElementById("cumplimientoChart"), {
     options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: stagedBarLoad,
+        animations: {
+            y: {
+                from: 0
+            }
+        },
         scales: { y: { beginAtZero: true, max: 120, ticks: { callback: (value) => value + "%" } } },
         plugins: { tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.parsed.y ?? 0}%` } } }
     }

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components.html" import page_header, panel, input, button %}
+{% from "components.html" import page_header, panel, input, button, icon %}
 
 {% block title %}Avances{% endblock %}
 
@@ -40,14 +40,15 @@
             {% endfor %}
         </select>
         <span class="mt-2 block rounded-xl bg-brand-50 px-3 py-2 text-xs font-medium text-brand-700">
-            Tipo 1 usa el ultimo mes del periodo: (valor obtenido / logro esperado) x 100.
+            El cálculo calcula el avance en cascada: primero de Indicadores, luego el promedio de estos para Acciones Estratégicas y finalmente el promedio de Acciones para Objetivos Estratégicos.
         </span>
     </label>
-    <div class="flex items-end">{{ button("Calcular Tipo 1") }}</div>
+    <div class="flex items-end">{{ button("Calcular Avances") }}</div>
 </form>
 {% endcall %}
 
-<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-950">Resultados registrados</h2>
+<!-- SECCIÓN 1: AVANCES DE INDICADORES -->
+<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-950">Avances de Indicadores</h2>
 <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5">
     <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -67,10 +68,10 @@
             <tr>
                 <td class="px-4 py-3 font-semibold text-brand-700">{{ a.codigo }}</td>
                 <td class="px-4 py-3">{{ a.nombre_indicador }}</td>
-                <td class="px-4 py-3">{{ a.gestion }}</td>
-                <td class="px-4 py-3">{{ a.periodo }}</td>
-                <td class="px-4 py-3">{{ a.tipo_avance.replace("_", " ").title() }}</td>
-                <td class="px-4 py-3 text-right">{{ "%.2f"|format(a.resultado_vista) }}</td>
+                <td class="px-4 py-3 text-slate-500">{{ a.gestion }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ a.periodo }}</td>
+                <td class="px-4 py-3 text-slate-500">{{ a.tipo_avance.replace("_", " ").title() }}</td>
+                <td class="px-4 py-3 text-right font-bold tabular-nums">{{ "%.2f%%"|format(a.resultado_vista) }}</td>
                 <td class="px-4 py-3">
                     <span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold {{ a.estado.clase }}">
                         {{ a.estado.nombre }}
@@ -85,7 +86,99 @@
             {% else %}
             <tr>
                 <td colspan="8" class="px-4 py-10 text-center text-sm font-medium text-slate-500">
-                    Aun no hay avances calculados para esta gestion.
+                    Aún no hay avances calculados para esta gestión.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- SECCIÓN 2: AVANCES DE ACCIONES ESTRATÉGICAS -->
+<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-950">Avances de Acciones Estratégicas</h2>
+<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr class="transition hover:bg-slate-50/80">
+                <th class="px-4 py-3 text-left font-bold">Objetivo Estratégico</th>
+                <th class="px-4 py-3 text-left font-bold">Acción Estratégica</th>
+                <th class="px-4 py-3 text-left font-bold">Gestión</th>
+                <th class="px-4 py-3 text-left font-bold">Periodo</th>
+                <th class="px-4 py-3 text-left font-bold">Tipo</th>
+                <th class="px-4 py-3 text-right font-bold">Resultado</th>
+                <th class="px-4 py-3 text-left font-bold">Estado</th>
+                <th class="px-4 py-3 text-left font-bold">Alerta</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+            {% for aa in avances_acciones %}
+            <tr>
+                <td class="px-4 py-3 text-slate-500 max-w-xs truncate" title="{{ aa.objetivo_nombre }}">{{ aa.objetivo_nombre }}</td>
+                <td class="px-4 py-3 font-medium text-slate-900">{{ aa.nombre_accion }}</td>
+                <td class="px-4 py-3 text-slate-500">{{ aa.gestion }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ aa.periodo }}</td>
+                <td class="px-4 py-3 text-slate-500">{{ aa.tipo_avance.replace("_", " ").title() }}</td>
+                <td class="px-4 py-3 text-right font-bold tabular-nums">{{ "%.2f%%"|format(aa.resultado_vista) }}</td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold {{ aa.estado.clase }}">
+                        {{ aa.estado.nombre }}
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex rounded-full border px-2 py-1 text-xs font-semibold {{ aa.alerta.clase }}">
+                        {{ aa.alerta.texto }}
+                    </span>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="px-4 py-10 text-center text-sm font-medium text-slate-500">
+                    Aún no hay avances calculados de acciones estratégicas para esta gestión.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- SECCIÓN 3: AVANCES DE OBJETIVOS ESTRATÉGICOS -->
+<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-950">Avances de Objetivos Estratégicos</h2>
+<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-md shadow-slate-900/5">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr class="transition hover:bg-slate-50/80">
+                <th class="px-4 py-3 text-left font-bold">Objetivo Estratégico</th>
+                <th class="px-4 py-3 text-left font-bold">Gestión</th>
+                <th class="px-4 py-3 text-left font-bold">Periodo</th>
+                <th class="px-4 py-3 text-left font-bold">Tipo</th>
+                <th class="px-4 py-3 text-right font-bold">Resultado</th>
+                <th class="px-4 py-3 text-left font-bold">Estado</th>
+                <th class="px-4 py-3 text-left font-bold">Alerta</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+            {% for ao in avances_objetivos %}
+            <tr>
+                <td class="px-4 py-3 font-medium text-slate-900">{{ ao.objetivo_nombre }}</td>
+                <td class="px-4 py-3 text-slate-500">{{ ao.gestion }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ ao.periodo }}</td>
+                <td class="px-4 py-3 text-slate-500">{{ ao.tipo_avance.replace("_", " ").title() }}</td>
+                <td class="px-4 py-3 text-right font-bold tabular-nums">{{ "%.2f%%"|format(ao.resultado_vista) }}</td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold {{ ao.estado.clase }}">
+                        {{ ao.estado.nombre }}
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex rounded-full border px-2 py-1 text-xs font-semibold {{ ao.alerta.clase }}">
+                        {{ ao.alerta.texto }}
+                    </span>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="px-4 py-10 text-center text-sm font-medium text-slate-500">
+                    Aún no hay avances calculados de objetivos estratégicos para esta gestión.
                 </td>
             </tr>
             {% endfor %}
