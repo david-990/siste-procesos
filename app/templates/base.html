@@ -44,6 +44,7 @@
     </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -108,15 +109,15 @@
           {# Navegación #}
           <nav class="flex-1 space-y-0.5">
             {% set sections = [ ("Monitoreo", [ ("panel", "Panel", "panel"),
-            ("resumen", "Resumen", "resumen"), ("avances", "Avances",
-            "avances"), ]), ("Configuración", [ 
-             ("objetivos", "Objetivos Est.", "metas_anuales"),
-             ("acciones", "Acciones Est.", "acciones"),
-             ("indicadores", "Indicadores", "indicadores"), 
-             ("lineas_base", "Línea Base", "lineas_base"), ("metas_anuales",
-             "Meta Anual", "metas_anuales"), ("metas_valores", "Metas y Valores",
-             "metas_valores"), ("change_password", "Cambiar clave", "settings"),
-             ]), ] %} {% for section_label, items in sections %}
+            ("resumen", "Resumen", "resumen"), ("avances", "Avances", "avances"),
+            ]), ("Configuración", [ ("procesos", "Procesos", "procesos"),
+            ("objetivos", "Objetivos Est.", "metas_anuales"), ("acciones",
+            "Acciones Est.", "acciones"), ("indicadores", "Indicadores",
+            "indicadores"), ("lineas_base", "Línea Base", "lineas_base"),
+            ("metas_anuales", "Meta Anual", "metas_anuales"), ("metas_valores",
+            "Metas y Valores", "metas_valores"), ("change_password", "Cambiar
+            clave", "settings"), ]), ] %} {% for section_label, items in sections
+            %}
             <div class="{% if not loop.first %}mt-5{% endif %}">
               <div
                 class="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400"

@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Ficha de Producto y Proceso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 p-6 flex justify-center">
+    <div
+      class="w-full max-w-5xl bg-white shadow-lg p-6 rounded-lg overflow-x-auto"
+    >
+      <!-- Encabezado del anexo (fuera de la tabla principal) -->
+      <div class="mb-4 border border-gray-400 p-3 bg-gray-50">
+        <p>
+          <strong>Objetivo del anexo:</strong> Establecer el formato de Ficha de
+          producto y proceso.
+        </p>
+        <p><strong>Carácter:</strong> Contenido mínimo obligatorio.</p>
+      </div>
+
+      <!-- Tabla principal que replica la ficha -->
+      <table class="w-full border border-gray-400 border-collapse text-sm">
+        <!-- Fila 1: Título y Tipo de proceso -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-bold text-lg"
+            colspan="3"
+          >
+            FICHA DE PRODUCTO Y PROCESO
+          </td>
+          <td class="border border-gray-400 p-2 font-semibold">
+            Tipo de proceso
+          </td>
+          <td class="border border-gray-400 p-2">
+            <select
+              class="w-full bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5"
+            >
+              <option value="">Seleccionar</option>
+              <option value="misional">Misional</option>
+              <option value="estrategico">Estratégico</option>
+              <option value="apoyo">Apoyo</option>
+            </select>
+          </td>
+        </tr>
+
+        <!-- Fila 2: Nombre del proceso -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-semibold"
+            colspan="2"
+          >
+            Nombre del proceso
+          </td>
+          <td
+            class="border border-gray-400 p-2"
+            colspan="3"
+          >
+            <input
+              type="text"
+              class="w-full bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5"
+              placeholder="Código y Nombre del proceso"
+            />
+          </td>
+        </tr>
+
+        <!-- Fila 3: Dueño del proceso -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-semibold"
+            colspan="2"
+          >
+            Dueño del proceso
+          </td>
+          <td
+            class="border border-gray-400 p-2"
+            colspan="3"
+          >
+            <input
+              type="text"
+              class="w-full bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5"
+              placeholder="Unidad de organización con responsabilidad y autoridad..."
+            />
+          </td>
+        </tr>
+
+        <!-- Fila 4: Objetivo del proceso -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-semibold"
+            colspan="2"
+          >
+            Objetivo del proceso
+          </td>
+          <td
+            class="border border-gray-400 p-2"
+            colspan="3"
+          >
+            <textarea
+              rows="2"
+              class="w-full bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5"
+              placeholder="Fin último que se pretende alcanzar con la ejecución del proceso, ¿por qué el proceso agrega valor? Debe guardar coherencia con el nombre del proceso."
+            ></textarea>
+          </td>
+        </tr>
+
+        <!-- Fila 5: Objetivo estratégico -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-semibold"
+            colspan="2"
+          >
+            Objetivo estratégico
+          </td>
+          <td
+            class="border border-gray-400 p-2"
+            colspan="3"
+          >
+            <input
+              type="text"
+              class="w-full bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5"
+              placeholder="Objetivo estratégico, acción estratégica u actividad operativa establecidos en los instrumentos de planeamiento, al cual se vinculan."
+            />
+          </td>
+        </tr>
+
+        <!-- Fila 6: Cabecera de la tabla de 4 columnas (Proveedor, Elementos, Producto, Receptor) -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-bold text-center"
+            colspan="5"
+          >
+            Proveedor de elemento de entrada
+          </td>
+        </tr>
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-bold text-center"
+            colspan="5"
+          >
+            Elementos de entrada
+          </td>
+        </tr>
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-bold text-center"
+            colspan="5"
+          >
+            Producto
+          </td>
+        </tr>
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-bold text-center"
+            colspan="5"
+          >
+            Receptor del producto
+          </td>
+        </tr>
+
+        <!-- Fila 7: Fila con los textos descriptivos (internos de cada columna) y campos de entrada -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2 align-top"
+            style="width: 25%"
+          >
+            <p class="font-semibold text-xs">
+              Proveedor de elemento de entrada
+            </p>
+            <p class="text-xs text-gray-600">
+              Provee los elementos de entrada, puede ser una persona, grupo de
+              personas, organización u otro proceso.
+            </p>
+            <input
+              type="text"
+              class="w-full border border-gray-300 rounded px-2 py-1 mt-1 text-sm"
+              placeholder="Escriba aquí"
+            />
+          </td>
+          <td
+            class="border border-gray-400 p-2 align-top"
+            style="width: 25%"
+          >
+            <p class="font-semibold text-xs">Elementos de entrada</p>
+            <p class="text-xs text-gray-600">
+              Necesidades y expectativas de las personas que requiere ser
+              atendidas por productos. Pueden ser tangibles (expedientes,
+              formularios, escritos, reclamos, otros) o intangibles
+              (información, normas, otros).
+            </p>
+            <input
+              type="text"
+              class="w-full border border-gray-300 rounded px-2 py-1 mt-1 text-sm"
+              placeholder="Escriba aquí"
+            />
+          </td>
+          <td
+            class="border border-gray-400 p-2 align-top"
+            style="width: 25%"
+          >
+            <p class="font-semibold text-xs">Producto</p>
+            <p class="text-xs text-gray-600">
+              Resultado(s) de un proceso, entendido como los bienes, servicios y
+              regulaciones que recibe una persona y que deben contar con los
+              requisitos necesarios para satisfacer sus necesidades y
+              expectativas.
+            </p>
+            <input
+              type="text"
+              class="w-full border border-gray-300 rounded px-2 py-1 mt-1 text-sm"
+              placeholder="Escriba aquí"
+            />
+          </td>
+          <td
+            class="border border-gray-400 p-2 align-top"
+            style="width: 25%"
+          >
+            <p class="font-semibold text-xs">Receptor del producto</p>
+            <p class="text-xs text-gray-600">
+              Receptor final del producto, pudiendo ser una persona, grupo de
+              personas, organización, otro proceso. También se denominan
+              usuarios, beneficiarios, clientes o administrados.
+            </p>
+            <input
+              type="text"
+              class="w-full border border-gray-300 rounded px-2 py-1 mt-1 text-sm"
+              placeholder="Escriba aquí"
+            />
+          </td>
+        </tr>
+
+        <!-- Fila 8: Actividades del proceso -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-semibold align-top"
+            colspan="5"
+          >
+            Actividades del proceso
+            <div
+              class="mt-1 border-2 border-dashed border-gray-400 p-2 text-center text-gray-500 text-sm"
+            >
+              <p>
+                Colocar el diagrama del proceso que representa de forma gráfica
+                la identificación, secuencia e interacción de las actividades
+                del proceso, y sus elementos, así como los registros que se
+                generan.
+              </p>
+              <textarea
+                rows="3"
+                class="w-full border border-gray-300 rounded px-2 py-1 mt-2 text-sm"
+                placeholder="Inserte aquí la descripción o suba una imagen del diagrama"
+              ></textarea>
+              <p class="text-xs text-gray-400 mt-1">
+                (Puede hacer clic para cargar una imagen)
+              </p>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Fila 9: Riesgos -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-semibold"
+            colspan="2"
+          >
+            Riesgos
+          </td>
+          <td
+            class="border border-gray-400 p-2"
+            colspan="3"
+          >
+            <textarea
+              rows="2"
+              class="w-full bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5"
+              placeholder="Situaciones que pueden generar desvíos en el cumplimiento de los objetivos del proceso para la entrega de productos. Considerar este campo en la ficha de producto y proceso de último nivel."
+            ></textarea>
+          </td>
+        </tr>
+
+        <!-- Fila 10: Registros -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2 font-semibold"
+            colspan="2"
+          >
+            Registros
+          </td>
+          <td
+            class="border border-gray-400 p-2"
+            colspan="3"
+          >
+            <input
+              type="text"
+              class="w-full bg-transparent border-0 focus:ring-1 focus:ring-blue-500 rounded px-1 py-0.5"
+              placeholder="Documentación que se genera a partir de las actividades o tareas de un proceso. Son distintas a los productos. Por ejemplo, Informe, Reporte, Acta. Considerar este campo en la ficha de producto y proceso de último nivel."
+            />
+          </td>
+        </tr>
+
+        <!-- Fila 11: Firmas (Elaborado, Revisado, Aprobado) -->
+        <tr>
+          <td
+            class="border border-gray-400 p-2"
+            colspan="5"
+          >
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <p class="font-semibold">Elaborado por:</p>
+                <input
+                  type="text"
+                  class="w-full border-b border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none mt-1"
+                  placeholder="Firma del servidor que elabora el documento"
+                />
+              </div>
+              <div>
+                <p class="font-semibold">Revisado por:</p>
+                <input
+                  type="text"
+                  class="w-full border-b border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none mt-1"
+                  placeholder="Firma del responsable de unidad de organización encargada de la gestión por procesos"
+                />
+              </div>
+              <div>
+                <p class="font-semibold">Aprobado por:</p>
+                <input
+                  type="text"
+                  class="w-full border-b border-gray-400 bg-transparent focus:border-blue-500 focus:outline-none mt-1"
+                  placeholder="Firma del dueño del proceso"
+                />
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Botón de enviar (opcional, para dar funcionalidad) -->
+      <div class="mt-6 flex justify-end">
+        <button
+          type="submit"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded shadow transition"
+        >
+          Guardar Ficha
+        </button>
+      </div>
+    </div>
+  </body>
+</html>

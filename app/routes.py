@@ -26,6 +26,8 @@ ADMIN_ENDPOINTS = {
     "main.lineas_base",
     "main.linea_base_eliminar",
     "main.metas_valores",
+    "main.procesos",
+    "main.proceso_eliminar",
 }
 LOGIN_ATTEMPT_LIMIT = 5
 LOGIN_ATTEMPT_WINDOW_SECONDS = 300
@@ -340,6 +342,61 @@ def objetivo_eliminar(objetivo_id):
     repo.delete_objetivo(objetivo_id)
     flash("Objetivo estratégico eliminado.")
     return redirect(url_for("main.objetivos"))
+
+
+@bp.route("/procesos", methods=["GET", "POST"])
+def procesos():
+    if request.method == "POST":
+        proceso_id = _safe_int(request.form.get("id")) or None
+        nivel = _safe_int(request.form.get("nivel"))
+        tipo_proceso = request.form.get("tipo_proceso", "").strip()
+        producto_proceso = request.form.get("producto_proceso", "").strip()
+        codigo_proceso = request.form.get("codigo_proceso", "").strip()
+        nombre_proceso = request.form.get("nombre_proceso", "").strip()
+
+        errors = []
+        if nivel is None or not (0 <= nivel <= 3):
+            errors.append("El nivel del proceso debe estar entre 0 y 3.")
+        if tipo_proceso not in ("Estratégico", "Misional", "Apoyo"):
+            errors.append("Selecciona un tipo de proceso válido.")
+        if not producto_proceso:
+            errors.append("El producto del proceso es requerido.")
+        if not codigo_proceso:
+            errors.append("El código del proceso es requerido.")
+        if not nombre_proceso:
+            errors.append("El nombre del proceso es requerido.")
+
+        # Verificar unicidad del codigo_proceso
+        if codigo_proceso:
+            existing = repo.get_proceso_by_codigo(codigo_proceso)
+            if existing and (proceso_id is None or existing["id"] != proceso_id):
+                errors.append(f"El código de proceso '{codigo_proceso}' ya está registrado.")
+
+        if errors:
+            for err in errors:
+                flash(err)
+        else:
+            repo.save_proceso(
+                {
+                    "nivel": nivel,
+                    "tipo_proceso": tipo_proceso,
+                    "producto_proceso": producto_proceso,
+                    "codigo_proceso": codigo_proceso,
+                    "nombre_proceso": nombre_proceso,
+                },
+                proceso_id,
+            )
+            flash("Proceso guardado correctamente.")
+            return redirect(url_for("main.procesos"))
+
+    return render_template("procesos.html", procesos=repo.get_procesos())
+
+
+@bp.post("/procesos/<int:proceso_id>/eliminar")
+def proceso_eliminar(proceso_id):
+    repo.delete_proceso(proceso_id)
+    flash("Proceso eliminado.")
+    return redirect(url_for("main.procesos"))
 
 
 @bp.route("/acciones", methods=["GET", "POST"])

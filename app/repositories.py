@@ -580,3 +580,46 @@ def get_avances_objetivos(gestion_id):
         """,
         (gestion_id,)
     )
+
+
+def get_procesos():
+    return fetch_all("SELECT id, nivel, tipo_proceso, producto_proceso, codigo_proceso, nombre_proceso FROM procesos ORDER BY codigo_proceso")
+
+
+def get_proceso(proceso_id):
+    return fetch_one("SELECT * FROM procesos WHERE id = %s", (proceso_id,))
+
+
+def get_proceso_by_codigo(codigo):
+    return fetch_one("SELECT * FROM procesos WHERE codigo_proceso = %s", (codigo.strip(),))
+
+
+def save_proceso(data, proceso_id=None):
+    params = (
+        int(data["nivel"]),
+        data["tipo_proceso"],
+        data["producto_proceso"].strip(),
+        data["codigo_proceso"].strip(),
+        data["nombre_proceso"].strip(),
+    )
+    if proceso_id:
+        execute(
+            """
+            UPDATE procesos
+            SET nivel=%s, tipo_proceso=%s, producto_proceso=%s, codigo_proceso=%s, nombre_proceso=%s
+            WHERE id=%s
+            """,
+            (*params, proceso_id),
+        )
+        return proceso_id
+    return execute(
+        """
+        INSERT INTO procesos (nivel, tipo_proceso, producto_proceso, codigo_proceso, nombre_proceso)
+        VALUES (%s, %s, %s, %s, %s)
+        """,
+        params,
+    )
+
+
+def delete_proceso(proceso_id):
+    execute("DELETE FROM procesos WHERE id = %s", (proceso_id,))
