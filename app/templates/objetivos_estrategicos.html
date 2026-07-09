@@ -1,103 +1,132 @@
 {% extends "base.html" %}
-{% from "components.html" import page_header, panel, input, icon %}
+{% from "components.html" import icon %}
 
 {% block title %}Objetivos Estratégicos{% endblock %}
 
 {% block content %}
-{{ page_header("Objetivos Estratégicos", "Registra y gestiona los objetivos estratégicos de la institución.") }}
-
-{% call panel() %}
-<form method="post" class="space-y-4" id="objetivo-form">
-    <div class="mb-2">
-        <div class="text-base font-semibold text-slate-900" id="form-title">Registrar Objetivo Estratégico</div>
-        <p class="text-sm text-slate-500" id="form-subtitle">Ingresa los datos para registrar un nuevo objetivo estratégico.</p>
-    </div>
-    <input type="hidden" name="id" id="objetivo-id">
-    <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
-        {{ input("nombre", "Objetivo Estratégico", type="text", width="lg:col-span-3") }}
-        <div class="flex items-end gap-2">
-            <button type="submit" id="submit-button" class="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
-                Guardar
-            </button>
-            <button type="button" id="cancel-button" class="hidden inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 outline-none transition hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-slate-100 active:scale-[0.98]">
-                Cancelar
+<div x-data="{
+    showModal: false,
+    editMode: false,
+    id: '',
+    nombre: ''
+}">
+    <!-- Encabezado de Página con Botón de Registro -->
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">Objetivos Estratégicos</h1>
+            <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Registra y gestiona los objetivos estratégicos de la institución.</p>
+        </div>
+        <div>
+            <button type="button" @click="showModal = true; editMode = false; id = ''; nombre = ''" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+                {{ icon("plus", "h-4 w-4") }}
+                Registrar Objetivo
             </button>
         </div>
     </div>
-</form>
-{% endcall %}
 
-<h2 class="mt-8 mb-3 text-lg font-semibold text-slate-900">Objetivos Estratégicos registrados</h2>
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-    <table class="min-w-full divide-y divide-slate-200 text-sm">
-        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-                <th class="w-20 px-4 py-3 text-left font-semibold">ID</th>
-                <th class="px-4 py-3 text-left font-semibold">Objetivo Estratégico</th>
-                <th class="w-32 px-4 py-3 text-center font-semibold">Acciones</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-200">
-            {% for row in objetivos %}
-            <tr class="hover:bg-slate-50">
-                <td class="px-4 py-3 font-semibold text-brand-700">{{ row.id }}</td>
-                <td class="px-4 py-3 text-slate-900 font-medium">{{ row.nombre }}</td>
-                <td class="px-4 py-3 text-center">
-                    <div class="flex justify-center gap-2">
-                        <button type="button"
-                                class="edit-objetivo inline-flex items-center justify-center rounded-lg bg-brand-700 p-2 text-white shadow-sm hover:bg-brand-800 active:scale-[0.98] transition"
-                                data-id="{{ row.id }}"
-                                data-nombre="{{ row.nombre }}"
-                                title="Editar">
-                            {{ icon("edit", "h-4 w-4") }}
-                        </button>
-                        <form method="post" action="{{ url_for('main.objetivo_eliminar', objetivo_id=row.id) }}">
-                            <button class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 hover:bg-red-100 active:scale-[0.98] transition" title="Eliminar">
-                                {{ icon("trash", "h-4 w-4") }}
+    <!-- Contenedor del Modal -->
+    <div x-show="showModal" class="relative z-50" style="display: none;" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Fondo Oscurecido -->
+        <div x-show="showModal"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"></div>
+
+        <!-- Cuerpo del Modal -->
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <!-- Ventana del Formulario -->
+                <div x-show="showModal"
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     @click.away="showModal = false"
+                     class="relative transform overflow-hidden rounded-2xl bg-white p-6 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl">
+                     
+                     <div class="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
+                         <button type="button" @click="showModal = false" class="rounded-lg text-slate-400 hover:text-slate-500 focus:outline-none">
+                             <span class="sr-only">Cerrar</span>
+                             <span class="text-xl font-medium">&times;</span>
+                         </button>
+                     </div>
+                     
+                     <form method="post" class="space-y-4">
+                         <div class="mb-4 border-b border-slate-100 pb-3">
+                             <h3 class="text-lg font-bold text-slate-900" x-text="editMode ? 'Editar Objetivo Estratégico' : 'Registrar Objetivo Estratégico'"></h3>
+                             <p class="text-sm text-slate-500" x-text="editMode ? 'Actualiza el nombre del objetivo estratégico y guarda los cambios.' : 'Ingresa los datos para registrar un nuevo objetivo estratégico.'"></p>
+                         </div>
+                         
+                         <input type="hidden" name="id" :value="id">
+                         
+                         <!-- Nombre del Objetivo -->
+                         <label class="block">
+                             <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Objetivo Estratégico</span>
+                             <textarea name="nombre" x-model="nombre" rows="3" required class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100"></textarea>
+                         </label>
+                         
+                         <div class="mt-5 flex justify-end gap-3 border-t border-slate-100 pt-4">
+                             <button type="button" @click="showModal = false" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-slate-200 active:scale-[0.98]">
+                                 Cancelar
+                             </button>
+                             <button type="submit" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+                                 Guardar
+                             </button>
+                         </div>
+                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Listado de Objetivos Registrados -->
+    <div class="mt-8 mb-3 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-slate-900">Objetivos Estratégicos registrados</h2>
+        <span class="text-xs text-slate-400">{{ objetivos|length }} registro{{ 's' if objetivos|length != 1 else '' }}</span>
+    </div>
+    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="w-20 px-4 py-3 text-left font-semibold">ID</th>
+                    <th class="px-4 py-3 text-left font-semibold">Objetivo Estratégico</th>
+                    <th class="w-32 px-4 py-3 text-center font-semibold">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for row in objetivos %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-semibold text-brand-700">{{ row.id }}</td>
+                    <td class="px-4 py-3 text-slate-900 font-medium leading-relaxed">{{ row.nombre }}</td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="flex justify-center gap-2">
+                            <button type="button"
+                                    class="inline-flex items-center justify-center rounded-lg bg-brand-700 p-2 text-white shadow-sm hover:bg-brand-800 active:scale-[0.98] transition"
+                                    @click="showModal = true; editMode = true; id = '{{ row.id }}'; nombre = '{{ row.nombre | escape | replace('\'', '\\\'') }}'"
+                                    title="Editar">
+                                {{ icon("edit", "h-4 w-4") }}
                             </button>
-                        </form>
-                    </div>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="3" class="px-4 py-10 text-center text-sm text-slate-400">No hay objetivos estratégicos registrados.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                            <form method="post" action="{{ url_for('main.objetivo_eliminar', objetivo_id=row.id) }}">
+                                <button class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 hover:bg-red-100 active:scale-[0.98] transition" title="Eliminar">
+                                    {{ icon("trash", "h-4 w-4") }}
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="px-4 py-10 text-center text-sm text-slate-400">No hay objetivos estratégicos registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-
-<script>
-const form = document.getElementById("objetivo-form");
-const cancelButton = document.getElementById("cancel-button");
-const submitButton = document.getElementById("submit-button");
-const formTitle = document.getElementById("form-title");
-const formSubtitle = document.getElementById("form-subtitle");
-const idInput = document.getElementById("objetivo-id");
-
-function setFormModeCreate() {
-    form.reset();
-    idInput.value = "";
-    formTitle.textContent = "Registrar Objetivo Estratégico";
-    formSubtitle.textContent = "Ingresa los datos para registrar un nuevo objetivo estratégico.";
-    submitButton.textContent = "Guardar";
-    cancelButton.classList.add("hidden");
-}
-
-document.querySelectorAll(".edit-objetivo").forEach((button) => {
-    button.addEventListener("click", () => {
-        idInput.value = button.dataset.id;
-        form.elements.nombre.value = button.dataset.nombre;
-        
-        formTitle.textContent = "Editar Objetivo Estratégico";
-        formSubtitle.textContent = "Actualiza el nombre del objetivo estratégico y guarda los cambios.";
-        submitButton.textContent = "Actualizar";
-        cancelButton.classList.remove("hidden");
-        form.scrollIntoView({ behavior: 'smooth' });
-    });
-});
-
-cancelButton.addEventListener("click", setFormModeCreate);
-</script>
 {% endblock %}

@@ -623,3 +623,15 @@ def save_proceso(data, proceso_id=None):
 
 def delete_proceso(proceso_id):
     execute("DELETE FROM procesos WHERE id = %s", (proceso_id,))
+
+
+def get_mapa():
+    return fetch_one("SELECT * FROM mapa LIMIT 1")
+
+
+def save_mapa(imagen_filename):
+    existing = get_mapa()
+    if existing:
+        execute("UPDATE mapa SET imagen = %s WHERE id = %s", (imagen_filename, existing["id"]))
+        return existing["id"]
+    return execute("INSERT INTO mapa (imagen) VALUES (%s)", (imagen_filename,))

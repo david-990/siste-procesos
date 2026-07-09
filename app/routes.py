@@ -1,3 +1,5 @@
+import os
+import time
 from calendar import monthrange
 from datetime import date
 from secrets import token_urlsafe
@@ -28,6 +30,7 @@ ADMIN_ENDPOINTS = {
     "main.metas_valores",
     "main.procesos",
     "main.proceso_eliminar",
+    "main.mapa",
 }
 LOGIN_ATTEMPT_LIMIT = 5
 LOGIN_ATTEMPT_WINDOW_SECONDS = 300
@@ -397,6 +400,48 @@ def proceso_eliminar(proceso_id):
     repo.delete_proceso(proceso_id)
     flash("Proceso eliminado.")
     return redirect(url_for("main.procesos"))
+
+
+@bp.route("/mapa", methods=["GET", "POST"])
+def mapa():
+    mapa_registro = repo.get_mapa()
+    if request.method == "POST":
+        file = request.files.get("imagen")
+        if not file or file.filename == "":
+            flash("Por favor selecciona un archivo de imagen.")
+            return redirect(url_for("main.mapa"))
+
+        # Validar tipo de archivo
+        allowed_extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+        _, ext = os.path.splitext(file.filename.lower())
+        if ext not in allowed_extensions:
+            flash(f"Tipo de archivo no permitido. Tipos permitidos: {', '.join(allowed_extensions)}")
+            return redirect(url_for("main.mapa"))
+
+        # Crear directorio si no existe
+        upload_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
+        os.makedirs(upload_folder, exist_ok=True)
+
+        # Eliminar archivo físico anterior si existe
+        if mapa_registro:
+            old_filepath = os.path.join(upload_folder, mapa_registro["imagen"])
+            if os.path.exists(old_filepath):
+                try:
+                    os.remove(old_filepath)
+                except Exception as e:
+                    import logging
+                    logging.exception("Error al eliminar la imagen de mapa anterior: %s", e)
+
+        # Guardar nueva imagen con nombre único
+        new_filename = f"mapa_{int(time.time())}{ext}"
+        new_filepath = os.path.join(upload_folder, new_filename)
+        file.save(new_filepath)
+
+        repo.save_mapa(new_filename)
+        flash("Imagen del mapa actualizada correctamente.")
+        return redirect(url_for("main.mapa"))
+
+    return render_template("mapa.html", mapa=mapa_registro)
 
 
 @bp.route("/acciones", methods=["GET", "POST"])
