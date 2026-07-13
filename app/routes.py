@@ -11,6 +11,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import repositories as repo
 from app import services
+from app import reporte_ceplan_service
 
 
 bp = Blueprint("main", __name__)
@@ -804,4 +805,41 @@ def avances():
         avances=avances,
         avances_acciones=avances_acciones,
         avances_objetivos=avances_objetivos,
+    )
+
+
+@bp.route("/avance-tipo1", methods=["GET"])
+def avance_tipo1():
+    """
+    Ruta para visualizar el reporte de Avance Tipo 1 basado en formato CEPLAN A11.
+    Muestra seguimiento mensual de indicadores agrupados por objetivo y acción estratégica.
+    """
+    indicadores = repo.get_indicadores()
+    gestiones = repo.get_gestiones()
+    
+    if not _require_data(indicadores, gestiones):
+        return _empty_state("Registra indicadores y gestiones antes de visualizar avances.")
+    
+    # Obtener valores por defecto
+    gestion_id = _safe_int(request.values.get("gestion_id"), repo.get_default_gestion_id())
+    periodos = repo.get_periodos(gestion_id)
+    
+    if not _require_data(periodos):
+        return _empty_state("No hay periodos registrados para la gestión seleccionada.")
+    
+    # Usar el primer período por defecto
+    periodo_id = _safe_int(request.values.get("periodo_id")) or (periodos[0]["id"] if periodos else None)
+    
+    # Obtener datos del reporte
+    data = None
+    if periodo_id:
+        data = reporte_ceplan_service.get_avance_tipo1_data(gestion_id, periodo_id)
+    
+    return render_template(
+        "avance_tipo1.html",
+        gestiones=gestiones,
+        periodos=periodos,
+        gestion_id=gestion_id,
+        periodo_id=periodo_id,
+        data=data,
     )
