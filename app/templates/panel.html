@@ -254,13 +254,6 @@ Chart.defaults.font.family = "'Epunda Sans', system-ui, sans-serif";
 Chart.defaults.font.size = 12;
 Chart.defaults.color = '#64748b';
 
-const barLoadAnimation = {
-    duration: 1100,
-    easing: "easeOutQuart",
-    delay: (context) => context.type === "data" ? context.dataIndex * 120 : 0,
-    from: 0
-};
-
 const lineLoadAnimation = {
     duration: 900,
     easing: "easeOutCubic",
@@ -292,31 +285,59 @@ function getDynamicColor(value) {
 }
 
 if (barValues.length) {
+    const barFinalData = [...barValues];
     new Chart(document.getElementById("barChart"), {
         type: "bar",
         data: {
             labels: barLabels,
             datasets: [{
                 label: "Avance Tipo I",
-                data: barValues,
+                data: barValues.map(() => 0),
                 backgroundColor: barValues.map(getDynamicColor),
                 borderColor: barValues.map(getDynamicColor),
                 borderWidth: 1,
-                borderRadius: 4
+                borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 }
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: barLoadAnimation,
-            animations: {
-                y: {
-                    from: 0
-                }
-            },
+            animation: { duration: 0 },
             scales: { y: { beginAtZero: true, max: 100, grid: { color: '#f1f5f9' } } },
             plugins: { tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.parsed.y ?? 0}%` } } }
-        }
+        },
+        plugins: [{
+            id: 'barSequentialFill',
+            afterDraw(chart) {
+                if (chart._barDone) return;
+                chart._barDone = true;
+                const dataset = chart.data.datasets[0];
+                const targets = barValues;
+                let completed = 0;
+                targets.forEach((target, i) => {
+                    const delay = i * 500;
+                    const duration = 500;
+                    setTimeout(() => {
+                        const startTime = performance.now();
+                        function animate() {
+                            const elapsed = performance.now() - startTime;
+                            const progress = Math.min(elapsed / duration, 1);
+                            const eased = 1 - Math.pow(1 - progress, 3);
+                            dataset.data[i] = target * eased;
+                            chart.update('none');
+                            if (progress < 1) {
+                                requestAnimationFrame(animate);
+                            } else {
+                                dataset.data[i] = target;
+                                completed++;
+                                if (completed === targets.length) chart.update('none');
+                            }
+                        }
+                        requestAnimationFrame(animate);
+                    }, delay);
+                });
+            }
+        }]
     });
 }
 
@@ -338,23 +359,51 @@ new Chart(document.getElementById("lineChart"), {
     }
 });
 
+const donutFinalData = [...donutValues];
 new Chart(document.getElementById("donutChart"), {
     type: "doughnut",
     data: {
         labels: ["Concluido", "En seguimiento", "Crítico", "Sin dato"],
-        datasets: [{ data: donutValues, backgroundColor: ["#10b981", "#f59e0b", "#ef4444", "#cbd5e1"], borderWidth: 0 }]
+        datasets: [{ data: donutValues.map(() => 0), backgroundColor: ["#10b981", "#f59e0b", "#ef4444", "#cbd5e1"], borderWidth: 0 }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-            animateRotate: true,
-            animateScale: true,
-            duration: 1000,
-            easing: "easeOutQuart"
-        },
+        animation: { duration: 0 },
         plugins: { legend: { position: 'bottom', labels: { padding: 16 } } }
-    }
+    },
+    plugins: [{
+        id: 'sequentialFill',
+        afterDraw(chart) {
+            if (chart._seqDone) return;
+            chart._seqDone = true;
+            const dataset = chart.data.datasets[0];
+            const targets = donutValues;
+            let completed = 0;
+            targets.forEach((target, i) => {
+                const delay = i * 400;
+                const duration = 600;
+                setTimeout(() => {
+                    const startTime = performance.now();
+                    function animate() {
+                        const elapsed = performance.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3);
+                        dataset.data[i] = target * eased;
+                        chart.update('none');
+                        if (progress < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            dataset.data[i] = target;
+                            completed++;
+                            if (completed === targets.length) chart.update('none');
+                        }
+                    }
+                    requestAnimationFrame(animate);
+                }, delay);
+            });
+        }
+    }]
 });
 </script>
 {% endblock %}
