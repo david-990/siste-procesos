@@ -67,9 +67,9 @@ def get_avance_tipo1_data(gestion_id, periodo_id):
     # Estructura de datos jerárquica
     estructura = []
     conteo_semaforización = {
-        'objetivos': {'rojo': 0, 'amarillo': 0, 'verde': 0},
-        'acciones': {'rojo': 0, 'amarillo': 0, 'verde': 0},
-        'indicadores': {'rojo': 0, 'amarillo': 0, 'verde': 0},
+        'objetivos': {'rojo': 0, 'amarillo': 0, 'verde': 0, 'gris': 0},
+        'acciones': {'rojo': 0, 'amarillo': 0, 'verde': 0, 'gris': 0},
+        'indicadores': {'rojo': 0, 'amarillo': 0, 'verde': 0, 'gris': 0},
     }
     alertas = []
     
@@ -98,12 +98,17 @@ def get_avance_tipo1_data(gestion_id, periodo_id):
             indicadores = fetch_all(
                 """
                 SELECT i.id, i.codigo, i.nombre_indicador, i.prioridad, 
-                       i.sentido_esperado, i.tipo_agregacion
+                       i.sentido_esperado, i.tipo_agregacion,
+                       a.resultado AS avance_final
                 FROM indicadores i
+                LEFT JOIN avances a
+                    ON a.indicador_id = i.id
+                    AND a.periodo_id = %s
+                    AND a.tipo_avance = %s
                 WHERE i.accion_estrategica_id = %s AND i.estado = 1
                 ORDER BY i.codigo
                 """,
-                (accion_id,)
+                (periodo_id, 'TIPO_1', accion_id)
             )
             
             indicadores_data = []
@@ -153,15 +158,13 @@ def get_avance_tipo1_data(gestion_id, periodo_id):
                      periodo["num_mes_inicio"], periodo["num_mes_fin"])
                 )
                 
-                # Calcular avance final del período
-                avance_final = _calcular_avance_indicador(
-                    metas_valores, 
-                    indicador['tipo_agregacion']
-                )
+                # Usar el avance final reportado en la tabla avances
+                avance_final = float(indicador['avance_final']) if indicador['avance_final'] is not None else None
                 
                 # Determinar semáforo
                 semaforo = _determinar_semaforo(avance_final)
-                conteo_semaforización['indicadores'][semaforo['color']] += 1
+                if semaforo['color'] in conteo_semaforización['indicadores']:
+                    conteo_semaforización['indicadores'][semaforo['color']] += 1
                 
                 # Agregar a alertas si es crítico
                 if avance_final is not None and avance_final < 75:
@@ -174,7 +177,7 @@ def get_avance_tipo1_data(gestion_id, periodo_id):
                         'indicador_id': indicador_id
                     })
                 
-                avances_accion.append(avance_final if avance_final is not None else 0)
+                avances_accion.append(avance_final)
                 
                 # Formatear datos para la vista
                 meses_data = []
@@ -197,15 +200,15 @@ def get_avance_tipo1_data(gestion_id, periodo_id):
                         'gestion': gestion_id
                     },
                     'meses': meses_data,
-                    'avance_final': round(avance_final, 2) if avance_final else None,
+                    'avance_final': round(avance_final, 2) if avance_final is not None else None,
                     'semaforo': semaforo
                 })
             
             # Calcular avance de la acción (promedio de sus indicadores)
-            avance_accion = (sum(avances_accion) / len(avances_accion) 
-                           if avances_accion else None)
+            avance_accion = _promediar(avances_accion)
             semaforo_accion = _determinar_semaforo(avance_accion)
-            conteo_semaforización['acciones'][semaforo_accion['color']] += 1
+            if semaforo_accion['color'] in conteo_semaforización['acciones']:
+                conteo_semaforización['acciones'][semaforo_accion['color']] += 1
             
             if avance_accion is not None and avance_accion < 75:
                 alertas.append({
@@ -222,15 +225,15 @@ def get_avance_tipo1_data(gestion_id, periodo_id):
                 'id': accion_id,
                 'nombre': accion_nombre,
                 'indicadores': indicadores_data,
-                'avance': round(avance_accion, 2) if avance_accion else None,
+                'avance': round(avance_accion, 2) if avance_accion is not None else None,
                 'semaforo': semaforo_accion
             })
         
         # Calcular avance del objetivo (promedio de sus acciones)
-        avance_objetivo = (sum(avances_objetivo) / len(avances_objetivo) 
-                          if avances_objetivo else None)
+        avance_objetivo = _promediar(avances_objetivo)
         semaforo_objetivo = _determinar_semaforo(avance_objetivo)
-        conteo_semaforización['objetivos'][semaforo_objetivo['color']] += 1
+        if semaforo_objetivo['color'] in conteo_semaforización['objetivos']:
+            conteo_semaforización['objetivos'][semaforo_objetivo['color']] += 1
         
         if avance_objetivo is not None and avance_objetivo < 75:
             alertas.append({
@@ -244,7 +247,7 @@ def get_avance_tipo1_data(gestion_id, periodo_id):
             'id': objetivo_id,
             'nombre': objetivo_nombre,
             'acciones': acciones_data,
-            'avance': round(avance_objetivo, 2) if avance_objetivo else None,
+            'avance': round(avance_objetivo, 2) if avance_objetivo is not None else None,
             'semaforo': semaforo_objetivo
         })
     
@@ -289,6 +292,11 @@ def _calcular_avance_indicador(mesas_valores, tipo_agregacion):
     else:
         # Para indicadores AGREGABLE, sumar todos los valores
         return sum(valores_con_datos)
+
+
+def _promediar(avances):
+    validos = [a for a in avances if a is not None]
+    return (sum(validos) / len(validos)) if validos else None
 
 
 def _determinar_semaforo(avance):

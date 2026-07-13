@@ -175,7 +175,7 @@ mensual por gestión.") }}
                         {% if indicador['avance_final'] is not none %}
                         <span
                             class="inline-flex rounded-lg border px-3 py-1 text-sm font-bold {{ indicador['semaforo']['clase'] }}">
-                            {{ "%.1f%%"|format(indicador['avance_final']) }}
+                            {{ indicador['avance_final'] }}%
                         </span>
                         {% else %}
                         <span class="text-slate-400">—</span>
