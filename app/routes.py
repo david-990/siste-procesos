@@ -130,11 +130,14 @@ def inject_globals():
 def protect_requests():
     if request.endpoint is None:
         return None
-    if request.method == "POST" and (
-        not request.form.get("_csrf_token")
-        or request.form.get("_csrf_token") != session.get("_csrf_token")
-    ):
-        abort(400)
+    if request.method == "POST":
+        csrf_val = None
+        if request.is_json:
+            csrf_val = request.headers.get("X-CSRFToken") or request.json.get("_csrf_token")
+        else:
+            csrf_val = request.form.get("_csrf_token")
+        if not csrf_val or csrf_val != session.get("_csrf_token"):
+            abort(400)
     if request.endpoint not in PUBLIC_ENDPOINTS and not session.get("user_id"):
         return redirect(url_for("main.login", next=request.full_path))
     try:
@@ -917,3 +920,89 @@ def avance_tipo1():
         periodo_id=periodo_id,
         data=data,
     )
+
+
+@bp.post("/api/ai/chat")
+def api_ai_chat():
+    data = request.json or {}
+    message = data.get("message", "")
+    history = data.get("history", [])
+
+    # Obtener gestión activa
+    gestion_id = repo.get_default_gestion_id()
+    gestiones = repo.get_gestiones()
+    gestion = next((g for g in gestiones if g["id"] == gestion_id), None)
+    
+    # Obtener periodos de esta gestion
+    periodos = repo.get_periodos(gestion_id)
+    periodo_id = periodos[0]["id"] if periodos else 3
+    
+    # Consultar datos de contexto de la base de datos (SOLO lectura)
+    indicadores = repo.get_panel_seguimiento(gestion_id, periodo_id)
+    procesos = repo.get_procesos()
+    objetivos = repo.get_objetivos()
+    
+    # Obtener todas las metas mensuales y valores obtenidos de la gestión activa
+    valores_mensuales = repo.fetch_all(
+        """
+        SELECT i.codigo, m.nombre AS mes, mm.meta_mensual, vo.valor_obtenido
+        FROM indicadores i
+        JOIN meses m
+        LEFT JOIN metas_mensuales mm ON mm.indicador_id = i.id AND mm.mes_id = m.id AND mm.gestion_id = %s
+        LEFT JOIN valores_obtenidos vo ON vo.indicador_id = i.id AND vo.mes_id = m.id AND vo.gestion_id = %s
+        WHERE i.estado = 1 AND (mm.meta_mensual IS NOT NULL OR vo.valor_obtenido IS NOT NULL)
+        ORDER BY i.codigo, m.numero_mes
+        """,
+        (gestion_id, gestion_id)
+    )
+
+    # Obtener líneas base de esta gestión
+    lineas_base = repo.fetch_all(
+        """
+        SELECT i.codigo, lb.linea_base
+        FROM lineas_base lb
+        JOIN indicadores i ON lb.indicador_id = i.id
+        WHERE lb.gestion_id = %s
+        """,
+        (gestion_id,)
+    )
+    
+    context_data = {
+        "gestion": gestion["nombre"] if gestion else "N/A",
+        "objetivos": [{"id": o["id"], "nombre": o["nombre"]} for o in objetivos],
+        "procesos": [
+            {
+                "codigo": p["codigo_proceso"],
+                "nombre": p["nombre_proceso"],
+                "tipo": p["tipo_proceso"],
+                "producto": p["producto_proceso"]
+            } for p in procesos
+        ],
+        "indicadores": [
+            {
+                "codigo": i["codigo"],
+                "nombre": i["nombre_indicador"],
+                "meta_anual": f"{i['meta_anual']:.2f}" if i["meta_anual"] is not None else "Sin dato",
+                "avance_tipo_1": f"{i['avance_tipo_1']:.2f}%" if i["avance_tipo_1"] is not None else "Sin dato"
+            } for i in indicadores
+        ],
+        "lineas_base": [
+            {
+                "codigo_indicador": lb["codigo"],
+                "linea_base": f"{lb['linea_base']:.2f}" if lb["linea_base"] is not None else "N/A"
+            } for lb in lineas_base
+        ],
+        "valores_mensuales": [
+            {
+                "codigo_indicador": vm["codigo"],
+                "mes": vm["mes"],
+                "meta_mensual": f"{vm['meta_mensual']:.2f}" if vm["meta_mensual"] is not None else "N/A",
+                "valor_obtenido": f"{vm['valor_obtenido']:.2f}" if vm["valor_obtenido"] is not None else "N/A"
+            } for vm in valores_mensuales
+        ]
+    }
+
+    # Llamar a Gemini
+    response_text = ai_service.consultar_asistente(message, history, context_data)
+    
+    return {"response": response_text}

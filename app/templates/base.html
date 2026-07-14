@@ -44,6 +44,7 @@
     </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
       tailwind.config = {
@@ -303,5 +304,121 @@
         }
       });
     </script>
+
+    {% if not auth_view %}
+    <!-- Chatbot IA Flotante -->
+    <div x-data="{ 
+        open: false, 
+        loading: false, 
+        message: '', 
+        history: [
+            { role: 'assistant', text: '¡Hola! Soy tu asistente de gestión. ¿En qué puedo ayudarte hoy?' }
+        ],
+        async sendMessage() {
+            if (!this.message.trim()) return;
+            const userText = this.message;
+            this.history.push({ role: 'user', text: userText });
+            this.message = '';
+            this.loading = true;
+            
+            // Scroll al final
+            this.$nextTick(() => { this.scrollChat(); });
+            
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ message: userText, history: this.history })
+                });
+                if (!response.ok) throw new Error('Network response not ok');
+                const data = await response.json();
+                this.history.push({ role: 'assistant', text: data.response });
+            } catch (e) {
+                console.error(e);
+                this.history.push({ role: 'assistant', text: 'Lo siento, ocurrió un error de comunicación con el asistente de IA.' });
+            } finally {
+                this.loading = false;
+                this.$nextTick(() => { this.scrollChat(); });
+            }
+        },
+        scrollChat() {
+            const el = document.getElementById('chat-history-scroll');
+            if (el) el.scrollTop = el.scrollHeight;
+        }
+    }" class="fixed bottom-6 right-6 z-50">
+        <!-- Botón Flotante -->
+        <button @click="open = !open; if(open) $nextTick(() => scrollChat())" class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-700 text-white shadow-xl hover:bg-brand-800 transition active:scale-95 focus:outline-none">
+            <svg class="h-6 w-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+        </button>
+
+        <!-- Ventana de Chat -->
+        <div x-show="open" style="display: none;" class="absolute bottom-16 right-0 w-80 sm:w-96 rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden flex flex-col h-[450px]">
+            <!-- Cabecera -->
+            <div class="bg-brand-700 p-4 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span class="font-semibold text-sm">Asistente de Procesos IA</span>
+                </div>
+                <button type="button" @click="open = false" class="hover:text-slate-200">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <!-- Estilos de tabla internos para el chat -->
+            <style>
+                .chat-markdown-style table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 0.5rem;
+                    margin-bottom: 0.5rem;
+                    border: 1px solid #e2e8f0;
+                    font-size: 0.75rem;
+                }
+                .chat-markdown-style th, .chat-markdown-style td {
+                    border: 1px solid #e2e8f0;
+                    padding: 0.4rem 0.6rem;
+                    text-align: left;
+                }
+                .chat-markdown-style th {
+                    background-color: #f8fafc;
+                    font-weight: 600;
+                }
+                .chat-markdown-style ul {
+                    list-style-type: disc;
+                    padding-left: 1.25rem;
+                    margin-bottom: 0.5rem;
+                }
+                .chat-markdown-style p {
+                    margin-bottom: 0.5rem;
+                }
+            </style>
+
+            <!-- Historial -->
+            <div id="chat-history-scroll" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 text-xs">
+                <template x-for="msg in history">
+                    <div :class="msg.role === 'user' ? 'text-right' : 'text-left'">
+                        <div :class="msg.role === 'user' ? 'bg-brand-600 text-white rounded-br-none' : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'" class="inline-block max-w-[85%] rounded-2xl px-3.5 py-2.5 shadow-sm text-left chat-markdown-style" x-html="msg.role === 'assistant' ? marked.parse(msg.text) : msg.text">
+                        </div>
+                    </div>
+                </template>
+                <div x-show="loading" class="text-left">
+                    <div class="bg-white text-slate-400 border border-slate-200 rounded-2xl rounded-bl-none inline-block px-4 py-2.5 shadow-sm">
+                        Pensando...
+                    </div>
+                </div>
+            </div>
+            <!-- Entrada -->
+            <form @submit.prevent="sendMessage()" class="p-3 border-t border-slate-100 flex gap-2 bg-white">
+                <input type="text" x-model="message" placeholder="Pregúntame sobre metas o procesos..." class="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-600" />
+                <button type="submit" class="bg-brand-700 hover:bg-brand-800 text-white rounded-xl px-4 py-2 text-xs font-semibold">Enviar</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
   </body>
 </html>
