@@ -430,6 +430,7 @@ def procesos():
     if request.method == "POST":
         proceso_id = _safe_int(request.form.get("id")) or None
         nivel = _safe_int(request.form.get("nivel"))
+        proceso_padre_id = _safe_int(request.form.get("proceso_padre_id")) or None
         tipo_proceso = request.form.get("tipo_proceso", "").strip()
         producto_proceso = request.form.get("producto_proceso", "").strip()
         codigo_proceso = request.form.get("codigo_proceso", "").strip()
@@ -438,6 +439,47 @@ def procesos():
         errors = []
         if nivel is None or not (0 <= nivel <= 3):
             errors.append("El nivel del proceso debe estar entre 0 y 3.")
+        
+        # Validar relación de padre
+        if nivel == 0:
+            proceso_padre_id = None
+        else:
+            if not proceso_padre_id:
+                errors.append("Para niveles mayores a 0, se debe seleccionar un proceso padre.")
+            elif proceso_id and proceso_padre_id == proceso_id:
+                errors.append("Un proceso no puede ser su propio padre.")
+            else:
+                padre = repo.get_proceso(proceso_padre_id)
+                if not padre:
+                    errors.append("El proceso padre seleccionado no existe.")
+                elif padre["nivel"] != (nivel - 1):
+                    errors.append(f"El proceso padre debe ser de Nivel {nivel - 1}.")
+                else:
+                    # Heredar el tipo de proceso del padre obligatoriamente
+                    tipo_proceso = padre["tipo_proceso"]
+                    
+                    # Validar ciclos de dependencia (que el padre no sea un descendiente del proceso actual)
+                    if proceso_id:
+                        curr_id = proceso_padre_id
+                        visited = set()
+                        while curr_id:
+                            if curr_id == proceso_id:
+                                errors.append("No se puede seleccionar un proceso descendente como padre (ciclo de dependencia).")
+                                break
+                            if curr_id in visited:
+                                break
+                            visited.add(curr_id)
+                            parent_row = repo.get_proceso(curr_id)
+                            curr_id = parent_row["proceso_padre_id"] if parent_row else None
+
+        # Si el proceso ya tiene hijos, validar que no se altere su nivel
+        if proceso_id and not errors:
+            original = repo.get_proceso(proceso_id)
+            if original and original["nivel"] != nivel:
+                has_children = repo.fetch_one("SELECT 1 FROM procesos WHERE proceso_padre_id = %s LIMIT 1", (proceso_id,))
+                if has_children:
+                    errors.append("No se puede cambiar el nivel de este proceso porque tiene subprocesos dependientes registrados.")
+
         if tipo_proceso not in ("Estratégico", "Misional", "Apoyo"):
             errors.append("Selecciona un tipo de proceso válido.")
         if not producto_proceso:
@@ -464,6 +506,7 @@ def procesos():
                     "producto_proceso": producto_proceso,
                     "codigo_proceso": codigo_proceso,
                     "nombre_proceso": nombre_proceso,
+                    "proceso_padre_id": proceso_padre_id,
                 },
                 proceso_id,
             )
@@ -475,6 +518,12 @@ def procesos():
 
 @bp.post("/procesos/<int:proceso_id>/eliminar")
 def proceso_eliminar(proceso_id):
+    # Validar si tiene hijos antes de intentar eliminar
+    has_children = repo.fetch_one("SELECT 1 FROM procesos WHERE proceso_padre_id = %s LIMIT 1", (proceso_id,))
+    if has_children:
+        flash("No se puede eliminar el proceso porque tiene subprocesos dependientes registrados. Elimínalos o reasígnalos primero.")
+        return redirect(url_for("main.procesos"))
+        
     repo.delete_proceso(proceso_id)
     flash("Proceso eliminado.")
     return redirect(url_for("main.procesos"))

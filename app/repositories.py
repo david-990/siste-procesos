@@ -583,7 +583,15 @@ def get_avances_objetivos(gestion_id):
 
 
 def get_procesos():
-    return fetch_all("SELECT id, nivel, tipo_proceso, producto_proceso, codigo_proceso, nombre_proceso FROM procesos ORDER BY codigo_proceso")
+    return fetch_all(
+        """
+        SELECT p.id, p.nivel, p.tipo_proceso, p.producto_proceso, p.codigo_proceso, p.nombre_proceso, p.proceso_padre_id,
+               padre.nombre_proceso AS nombre_padre, padre.codigo_proceso AS codigo_padre
+        FROM procesos p
+        LEFT JOIN procesos padre ON p.proceso_padre_id = padre.id
+        ORDER BY p.codigo_proceso
+        """
+    )
 
 
 def get_proceso(proceso_id):
@@ -601,12 +609,13 @@ def save_proceso(data, proceso_id=None):
         data["producto_proceso"].strip(),
         data["codigo_proceso"].strip(),
         data["nombre_proceso"].strip(),
+        data.get("proceso_padre_id"),
     )
     if proceso_id:
         execute(
             """
             UPDATE procesos
-            SET nivel=%s, tipo_proceso=%s, producto_proceso=%s, codigo_proceso=%s, nombre_proceso=%s
+            SET nivel=%s, tipo_proceso=%s, producto_proceso=%s, codigo_proceso=%s, nombre_proceso=%s, proceso_padre_id=%s
             WHERE id=%s
             """,
             (*params, proceso_id),
@@ -614,8 +623,8 @@ def save_proceso(data, proceso_id=None):
         return proceso_id
     return execute(
         """
-        INSERT INTO procesos (nivel, tipo_proceso, producto_proceso, codigo_proceso, nombre_proceso)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO procesos (nivel, tipo_proceso, producto_proceso, codigo_proceso, nombre_proceso, proceso_padre_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """,
         params,
     )

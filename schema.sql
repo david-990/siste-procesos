@@ -12,38 +12,42 @@ CREATE TABLE procesos (
     id INT PRIMARY KEY AUTO_INCREMENT,
     nivel TINYINT UNSIGNED NOT NULL DEFAULT 0
         CHECK (nivel BETWEEN 0 AND 3),
-    tipo_proceso ENUM('Estratégico', 'Misional', 'Apoyo') NOT NULL,
+    tipo_proceso ENUM('Estratégico', 'Misional', 'Apoyo') NULL,
     producto_proceso TEXT NOT NULL,
     codigo_proceso VARCHAR(20) UNIQUE NOT NULL,
-    nombre_proceso VARCHAR(255) NOT NULL
-);
+    nombre_proceso VARCHAR(255) NOT NULL,
+    proceso_padre_id INT NULL,
 
-INSERT INTO procesos (nivel, tipo_proceso, producto_proceso, codigo_proceso, nombre_proceso) VALUES
-(0, 'Estratégico', 'Planes estratégicos y presupuestos institucionales aprobados', 'E1', 'Gestión estratégica y presupuestal'),
-(0, 'Estratégico', 'Políticas y lineamientos de gobernanza digital implementados', 'E2', 'Gobernanza digital'),
-(0, 'Estratégico', 'Informes de monitoreo y evaluación de gestión emitidos', 'E3', 'Monitoreo y evaluación'),
-(0, 'Misional', 'Intercambio de datos interoperables entre sistemas de información', 'M1', 'Interoperabilidad Técnica'),
-(1, 'Misional', 'Informe técnico-funcional del requerimiento', 'M1.1', 'Gestión de requerimientos de interoperabilidad'),
-(2, 'Misional', 'Requerimientos registrados', 'M1.1.1', 'Recepción de requerimientos de interoperabilidad'),
-(2, 'Misional', 'Requerimiento técnicamente evaluado', 'M1.1.2', 'Análisis técnico y funcional de requerimientos de interoperabilidad'),
-(2, 'Misional', 'Requerimiento priorizado y aprobado', 'M1.1.3', 'Priorización y aprobación de requerimientos de interoperabilidad'),
-(1, 'Misional', 'Servicio interoperable desarrollado e integrado', 'M1.2', 'Desarrollo e integración de servicios'),
-(2, 'Misional', 'Arquitectura de interoperabilidad definida', 'M1.2.1', 'Diseño de arquitectura de interoperabilidad'),
-(2, 'Misional', 'API o servicio web desarrollado', 'M1.2.2', 'Desarrollo de APIs y servicios web'),
-(2, 'Misional', 'Servicio integrado con sistemas internos y externos', 'M1.2.3', 'Integración con sistemas internos y externos'),
-(1, 'Misional', 'Servicio interoperable implementado y listo para uso operativo', 'M1.3', 'Implementación de interoperabilidad'),
-(2, 'Misional', 'Ambientes configurados para interoperabilidad', 'M1.3.1', 'Configuración de ambientes'),
-(2, 'Misional', 'Interoperabilidad validada mediante pruebas', 'M1.3.2', 'Pruebas de interoperabilidad'),
-(2, 'Misional', 'Servicio desplegado en producción', 'M1.3.3', 'Paso a producción de servicios interoperables'),
-(1, 'Misional', 'Servicio de interoperabilidad monitoreado, soportado y estabilizado', 'M1.4', 'Monitoreo y soporte de interoperabilidad'),
-(2, 'Misional', 'Estado del servicio monitoreado', 'M1.4.1', 'Monitoreo de servicios'),
-(2, 'Misional', 'Incidentes de interoperabilidad atendidos y cerrados', 'M1.4.2', 'Gestión de incidentes'),
-(2, 'Misional', 'Servicio corregido', 'M1.4.3', 'Mantenimiento correctivo'),
-(2, 'Misional', 'Servicio actualizado', 'M1.4.4', 'Mantenimiento evolutivo'),
-(1, 'Misional', 'Servicio de interoperabilidad seguro y conforme a normativas', 'M1.5', 'Gestión de seguridad y cumplimiento'),
-(2, 'Misional', 'Accesos y credenciales de interoperabilidad gestionados', 'M1.5.1', 'Gestión de seguridad'),
-(2, 'Misional', 'Cumplimiento de estándares y normas validado', 'M1.5.2', 'Validación de estándares y normativas'),
-(2, 'Misional', 'Control y trazabilidad de interoperabilidad auditados', 'M1.5.3', 'Auditoría y control de interoperabilidad');
+    CONSTRAINT fk_proceso_padre
+        FOREIGN KEY (proceso_padre_id) REFERENCES procesos(id)
+        ON DELETE RESTRICT
+);
+INSERT INTO procesos (nivel, tipo_proceso, producto_proceso, codigo_proceso, nombre_proceso, proceso_padre_id) VALUES
+(0, 'Estratégico', 'Planes estratégicos y presupuestos institucionales aprobados', 'E1', 'Gestión estratégica y presupuestal', NULL),
+(0, 'Estratégico', 'Políticas y lineamientos de gobernanza digital implementados', 'E2', 'Gobernanza digital', NULL),
+(0, 'Estratégico', 'Informes de monitoreo y evaluación de gestión emitidos', 'E3', 'Monitoreo y evaluación', NULL),
+(0, 'Misional', 'Intercambio de datos interoperables entre sistemas de información', 'M1', 'Interoperabilidad Técnica', NULL),
+(1, 'Misional', 'Informe técnico-funcional del requerimiento', 'M1.1', 'Gestión de requerimientos de interoperabilidad', 4),
+(2, 'Misional', 'Requerimientos registrados', 'M1.1.1', 'Recepción de requerimientos de interoperabilidad', 5),
+(2, 'Misional', 'Requerimiento técnicamente evaluado', 'M1.1.2', 'Análisis técnico y funcional de requerimientos de interoperabilidad', 5),
+(2, 'Misional', 'Requerimiento priorizado y aprobado', 'M1.1.3', 'Priorización y aprobación de requerimientos de interoperabilidad', 5),
+(1, 'Misional', 'Servicio interoperable desarrollado e integrado', 'M1.2', 'Desarrollo e integración de servicios', 4),
+(2, 'Misional', 'Arquitectura de interoperabilidad definida', 'M1.2.1', 'Diseño de arquitectura de interoperabilidad', 9),
+(2, 'Misional', 'API o servicio web desarrollado', 'M1.2.2', 'Desarrollo de APIs y servicios web', 9),
+(2, 'Misional', 'Servicio integrado con sistemas internos y externos', 'M1.2.3', 'Integración con sistemas internos y externos', 9),
+(1, 'Misional', 'Servicio interoperable implementado y listo para uso operativo', 'M1.3', 'Implementación de interoperabilidad', 4),
+(2, 'Misional', 'Ambientes configurados para interoperabilidad', 'M1.3.1', 'Configuración de ambientes', 13),
+(2, 'Misional', 'Interoperabilidad validada mediante pruebas', 'M1.3.2', 'Pruebas de interoperabilidad', 13),
+(2, 'Misional', 'Servicio desplegado en producción', 'M1.3.3', 'Paso a producción de servicios interoperables', 13),
+(1, 'Misional', 'Servicio de interoperabilidad monitoreado, soportado y estabilizado', 'M1.4', 'Monitoreo y soporte de interoperabilidad', 4),
+(2, 'Misional', 'Estado del servicio monitoreado', 'M1.4.1', 'Monitoreo de servicios', 17),
+(2, 'Misional', 'Incidentes de interoperabilidad atendidos y cerrados', 'M1.4.2', 'Gestión de incidentes', 17),
+(2, 'Misional', 'Servicio corregido', 'M1.4.3', 'Mantenimiento correctivo', 17),
+(2, 'Misional', 'Servicio actualizado', 'M1.4.4', 'Mantenimiento evolutivo', 17),
+(1, 'Misional', 'Servicio de interoperabilidad seguro y conforme a normativas', 'M1.5', 'Gestión de seguridad y cumplimiento', 4),
+(2, 'Misional', 'Accesos y credenciales de interoperabilidad gestionados', 'M1.5.1', 'Gestión de seguridad', 22),
+(2, 'Misional', 'Cumplimiento de estándares y normas validado', 'M1.5.2', 'Validación de estándares y normativas', 22),
+(2, 'Misional', 'Control y trazabilidad de interoperabilidad auditados', 'M1.5.3', 'Auditoría y control de interoperabilidad', 22);
 
 
 CREATE TABLE users (

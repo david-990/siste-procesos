@@ -4,6 +4,10 @@
 {% block title %}Procesos{% endblock %}
 
 {% block content %}
+<script>
+    window.allProcesosData = {{ procesos | tojson }};
+</script>
+
 <div x-data="{
     showModal: false,
     editMode: false,
@@ -12,8 +16,17 @@
     nombre: '',
     tipo: 'Estratégico',
     nivel: '0',
-    producto: ''
-}">
+    producto: '',
+    padreId: '',
+    allProcesos: window.allProcesosData || []
+}" x-effect="
+    if (nivel === '0') {
+        padreId = '';
+    } else if (padreId) {
+        const parent = allProcesos.find(p => p.id == padreId);
+        if (parent) { tipo = parent.tipo_proceso; }
+    }
+">
     <!-- Encabezado de Página con Botón de Registro -->
     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -21,7 +34,7 @@
             <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Registra y gestiona la estructura de procesos institucionales.</p>
         </div>
         <div>
-            <button type="button" @click="showModal = true; editMode = false; id = ''; codigo = ''; nombre = ''; tipo = 'Estratégico'; nivel = '0'; producto = ''" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+            <button type="button" @click="showModal = true; editMode = false; id = ''; codigo = ''; nombre = ''; tipo = 'Estratégico'; nivel = '0'; producto = ''; padreId = ''" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
                 {{ icon("plus", "h-4 w-4") }}
                 Registrar Proceso
             </button>
@@ -69,7 +82,43 @@
                          
                          <input type="hidden" name="id" :value="id">
                          
-                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                             <!-- Nivel -->
+                             <label class="block">
+                                 <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Nivel</span>
+                                 <select name="nivel" x-model="nivel" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+                                     <option value="0">Nivel 0 (Macroproceso)</option>
+                                     <option value="1">Nivel 1 (Proceso)</option>
+                                     <option value="2">Nivel 2 (Subproceso)</option>
+                                     <option value="3">Nivel 3 (Actividad)</option>
+                                 </select>
+                             </label>
+
+                             <!-- Tipo de Proceso -->
+                             <label class="block">
+                                 <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo de Proceso</span>
+                                 <select name="tipo_proceso" x-model="tipo" :disabled="nivel > 0" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 disabled:bg-slate-50 disabled:text-slate-500 disabled:opacity-75 disabled:cursor-not-allowed">
+                                     <option value="Estratégico">Estratégico</option>
+                                     <option value="Misional">Misional</option>
+                                     <option value="Apoyo">Apoyo</option>
+                                 </select>
+                                 <!-- Campo oculto para enviar el valor si select está deshabilitado -->
+                                 <input type="hidden" name="tipo_proceso" :value="tipo" x-show="nivel > 0">
+                             </label>
+                         </div>
+
+                         <!-- Selector de Proceso Padre (Visible solo si Nivel > 0) -->
+                         <div class="block" x-show="nivel > 0" style="display: none;">
+                             <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Proceso Padre</span>
+                              <select name="proceso_padre_id" x-model="padreId" :required="nivel > 0" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+                                  <option value="">-- Seleccionar Padre --</option>
+                                  <template x-for="p in allProcesos.filter(x => x.nivel == (+nivel - 1))" :key="p.id">
+                                      <option :value="p.id" x-text="p.codigo_proceso + ' - ' + p.nombre_proceso + ' (' + p.tipo_proceso + ')'"></option>
+                                  </template>
+                              </select>
+                          </div>
+
+                          <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                              <!-- Código -->
                              <label class="block">
                                  <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Código del Proceso</span>
@@ -79,28 +128,6 @@
                              <label class="block sm:col-span-2">
                                  <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre del Proceso</span>
                                  <input name="nombre_proceso" type="text" x-model="nombre" required class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
-                             </label>
-                         </div>
-                         
-                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                             <!-- Tipo de Proceso -->
-                             <label class="block">
-                                 <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo de Proceso</span>
-                                 <select name="tipo_proceso" x-model="tipo" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
-                                     <option value="Estratégico">Estratégico</option>
-                                     <option value="Misional">Misional</option>
-                                     <option value="Apoyo">Apoyo</option>
-                                 </select>
-                             </label>
-                             <!-- Nivel -->
-                             <label class="block">
-                                 <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Nivel</span>
-                                 <select name="nivel" x-model="nivel" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
-                                     <option value="0">Nivel 0</option>
-                                     <option value="1">Nivel 1</option>
-                                     <option value="2">Nivel 2</option>
-                                     <option value="3">Nivel 3</option>
-                                 </select>
                              </label>
                          </div>
                          
@@ -145,7 +172,21 @@
                 {% for row in procesos %}
                 <tr class="hover:bg-slate-50">
                     <td class="px-4 py-3 font-semibold text-brand-700">{{ row.codigo_proceso }}</td>
-                    <td class="px-4 py-3 text-slate-900 font-medium">{{ row.nombre_proceso }}</td>
+                    <td class="px-4 py-3 text-slate-900 font-medium">
+                        <div class="flex items-start gap-2" style="padding-left: {{ row.nivel * 1.5 }}rem">
+                            {% if row.nivel > 0 %}
+                                <span class="text-slate-400 font-normal select-none">↳</span>
+                            {% endif %}
+                            <div>
+                                <div class="leading-normal">{{ row.nombre_proceso }}</div>
+                                {% if row.nombre_padre %}
+                                    <div class="text-[10px] text-slate-400 font-normal mt-0.5 leading-none">
+                                        Padre: <span class="font-semibold text-slate-500">{{ row.codigo_padre }}</span> - {{ row.nombre_padre }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
                     <td class="px-4 py-3 text-slate-600">{{ row.tipo_proceso }}</td>
                     <td class="px-4 py-3 text-center text-slate-600">
                         <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800">
@@ -157,7 +198,7 @@
                         <div class="flex justify-center gap-2">
                             <button type="button"
                                     class="inline-flex items-center justify-center rounded-lg bg-brand-700 p-2 text-white shadow-sm hover:bg-brand-800 active:scale-[0.98] transition"
-                                    @click="showModal = true; editMode = true; id = '{{ row.id }}'; codigo = '{{ row.codigo_proceso | escape | replace('\'', '\\\'') }}'; nombre = '{{ row.nombre_proceso | escape | replace('\'', '\\\'') }}'; tipo = '{{ row.tipo_proceso }}'; nivel = '{{ row.nivel }}'; producto = '{{ row.producto_proceso | escape | replace('\'', '\\\'') }}'"
+                                    @click="showModal = true; editMode = true; id = '{{ row.id }}'; codigo = '{{ row.codigo_proceso | escape | replace('\'', '\\\'') }}'; nombre = '{{ row.nombre_proceso | escape | replace('\'', '\\\'') }}'; tipo = '{{ row.tipo_proceso }}'; nivel = '{{ row.nivel }}'; producto = '{{ row.producto_proceso | escape | replace('\'', '\\\'') }}'; padreId = '{{ row.proceso_padre_id or '' }}'"
                                     title="Editar">
                                 {{ icon("edit", "h-4 w-4") }}
                             </button>
