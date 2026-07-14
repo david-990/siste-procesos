@@ -538,4 +538,13 @@ INSERT INTO `valores_obtenidos` (`id`, `indicador_id`, `gestion_id`, `mes_id`, `
 	(122, 21, 2, 5, 65.00),
 	(123, 21, 2, 6, 68.00);
 
+-- Volcando estructura para tabla railway.resumenes_ia
+CREATE TABLE IF NOT EXISTS `resumenes_ia` (
+  `gestion_id` int unsigned NOT NULL,
+  `periodo_id` smallint unsigned NOT NULL,
+  `resumen` text NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`gestion_id`,`periodo_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
    SET FOREIGN_KEY_CHECKS=1;

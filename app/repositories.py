@@ -635,3 +635,23 @@ def save_mapa(imagen_filename):
         execute("UPDATE mapa SET imagen = %s WHERE id = %s", (imagen_filename, existing["id"]))
         return existing["id"]
     return execute("INSERT INTO mapa (imagen) VALUES (%s)", (imagen_filename,))
+
+
+def get_resumen_ia(gestion_id, periodo_id):
+    row = fetch_one(
+        "SELECT resumen FROM resumenes_ia WHERE gestion_id = %s AND periodo_id = %s",
+        (gestion_id, periodo_id),
+    )
+    return row["resumen"] if row else None
+
+
+def save_resumen_ia(gestion_id, periodo_id, resumen):
+    execute(
+        """
+        INSERT INTO resumenes_ia (gestion_id, periodo_id, resumen)
+        VALUES (%s, %s, %s)
+        ON DUPLICATE KEY UPDATE resumen = VALUES(resumen)
+        """,
+        (gestion_id, periodo_id, resumen),
+    )
+

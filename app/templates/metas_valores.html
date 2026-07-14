@@ -147,33 +147,82 @@ new Chart(document.getElementById("metaValorChart"), {
     }
 });
 
+function getDynamicColor(value) {
+    if (value === null || value === undefined) return '#cbd5e1';
+    const val = Math.max(0, Math.min(120, value));
+    if (val < 75) {
+        const ratio = val / 75;
+        const r = Math.round(153 + (249 - 153) * ratio);
+        const g = Math.round(27 + (115 - 27) * ratio);
+        const b = Math.round(27 + (22 - 27) * ratio);
+        return `rgb(${r}, ${g}, ${b})`;
+    } else if (val < 95) {
+        const ratio = (val - 75) / 20;
+        const r = Math.round(249 + (132 - 249) * ratio);
+        const g = Math.round(115 + (204 - 115) * ratio);
+        const b = Math.round(22 + (22 - 22) * ratio);
+        return `rgb(${r}, ${g}, ${b})`;
+    } else {
+        const ratio = Math.min(1.0, (val - 95) / 25);
+        const r = Math.round(34 + (6 - 34) * ratio);
+        const g = Math.round(197 + (78 - 197) * ratio);
+        const b = Math.round(94 + (59 - 94) * ratio);
+        return `rgb(${r}, ${g}, ${b})`;
+    }
+}
+
 new Chart(document.getElementById("cumplimientoChart"), {
     type: "bar",
     data: {
         labels,
         datasets: [{
             label: "Cumplimiento",
-            data: cumplimiento,
-            backgroundColor: cumplimiento.map((value) => {
-                if (value === null) return "#cbd5e1";
-                if (value < 75) return "#ef4444";
-                if (value < 95) return "#f59e0b";
-                return "#10b981";
-            })
+            data: cumplimiento.map(() => 0),
+            backgroundColor: cumplimiento.map(getDynamicColor),
+            borderColor: cumplimiento.map(getDynamicColor),
+            borderWidth: 1,
+            borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 }
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: stagedBarLoad,
-        animations: {
-            y: {
-                from: 0
-            }
-        },
+        animation: { duration: 0 },
         scales: { y: { beginAtZero: true, max: 120, ticks: { callback: (value) => value + "%" } } },
         plugins: { tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.parsed.y ?? 0}%` } } }
-    }
+    },
+    plugins: [{
+        id: 'barSequentialFill',
+        afterDraw(chart) {
+            if (chart._barDone) return;
+            chart._barDone = true;
+            const dataset = chart.data.datasets[0];
+            const targets = cumplimiento;
+            let completed = 0;
+            targets.forEach((target, i) => {
+                const delay = i * 150;
+                const duration = 500;
+                setTimeout(() => {
+                    const startTime = performance.now();
+                    function animate() {
+                        const elapsed = performance.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3);
+                        dataset.data[i] = target * eased;
+                        chart.update('none');
+                        if (progress < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            dataset.data[i] = target;
+                            completed++;
+                            if (completed === targets.length) chart.update('none');
+                        }
+                    }
+                    requestAnimationFrame(animate);
+                }, delay);
+            });
+        }
+    }]
 });
 </script>
 {% endblock %}

@@ -1,74 +1,6 @@
 {% extends "base.html" %}
 {% from "components.html" import page_header, panel %}
 
-{% macro estado_block(block_id, titulo, badge_class, filas, empty_message) %}
-<section id="{{ block_id }}" class="scroll-mt-24">
-    <div class="mb-3 flex items-center justify-between">
-        <h3 class="text-base font-semibold text-slate-900">{{ titulo }}</h3>
-        <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold {{ badge_class }}">
-            {{ filas|length }} indicadores
-        </span>
-    </div>
-    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
-            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                    <th class="px-4 py-3 text-left font-semibold">Indicador</th>
-                    <th class="px-4 py-3 text-left font-semibold">Objetivo Estratégico</th>
-                    <th class="px-4 py-3 text-left font-semibold">Acción Estratégica</th>
-                    <th class="px-4 py-3 text-right font-semibold">Logro esperado</th>
-                    <th class="px-4 py-3 text-right font-semibold">Meta anual</th>
-                    <th class="px-4 py-3 text-right font-semibold">Valor obtenido</th>
-                    <th class="px-4 py-3 text-right font-semibold">Avance Tipo I</th>
-                    <th class="px-4 py-3 text-left font-semibold">Estado</th>
-                    <th class="px-4 py-3 text-left font-semibold">Cierre</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-                {% for fila in filas %}
-                <tr class="hover:bg-slate-50">
-                    <td class="px-4 py-3">
-                        <div class="font-semibold text-brand-700">{{ fila.codigo }}</div>
-                        <div class="max-w-xs text-xs text-slate-500 leading-relaxed">{{ fila.nombre_indicador }}</div>
-                    </td>
-                    <td class="px-4 py-3 text-xs text-slate-600 max-w-xs truncate" title="{{ fila.objetivo_estrategico }}">
-                        <div>{{ fila.objetivo_estrategico }}</div>
-                        <div class="mt-1 font-bold text-brand-700">Avance: {{ "%.2f%%"|format(fila.avance_objetivo) if fila.avance_objetivo is not none else "—" }}</div>
-                    </td>
-                    <td class="px-4 py-3 text-xs text-slate-600 max-w-xs truncate" title="{{ fila.accion_estrategica }}">
-                        <div>{{ fila.accion_estrategica }}</div>
-                        <div class="mt-1 font-bold text-brand-700">Avance: {{ "%.2f%%"|format(fila.avance_accion) if fila.avance_accion is not none else "—" }}</div>
-                    </td>
-                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.meta_cierre) if fila.meta_cierre is not none else "—" }}</td>
-                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.meta_anual) if fila.meta_anual is not none else "—" }}</td>
-                    <td class="px-4 py-3 text-right tabular-nums text-slate-600">{{ "%.2f"|format(fila.valor_cierre) if fila.valor_cierre is not none else "—" }}</td>
-                    <td class="px-4 py-3 text-right font-semibold tabular-nums">
-                        {{ "%.2f%%"|format(fila.avance_tipo_1_vista) if fila.avance_tipo_1_vista is not none else "—" }}
-                    </td>
-                    <td class="px-4 py-3">
-                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.estado.clase }}">
-                            {{ fila.estado.nombre }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3">
-                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ fila.alerta.clase }}">
-                            {{ fila.alerta.texto }}
-                        </span>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="9" class="px-4 py-10 text-center text-sm text-slate-400">
-                        {{ empty_message }}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
-{% endmacro %}
-
 {% block title %}Panel{% endblock %}
 
 {% block content %}
@@ -152,7 +84,7 @@
         <div class="mt-2 text-2xl font-bold text-brand-700">{{ "%.1f%%"|format(avance_acciones_promedio) if avance_acciones_promedio is not none else "—" }}</div>
         <div class="mt-0.5 text-xs text-slate-400">estratégica prom.</div>
     </div>
-    <a href="#detalle-concluido" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200">
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex items-center gap-2">
             <span class="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
@@ -161,8 +93,8 @@
         </div>
         <div class="mt-2 text-2xl font-bold text-emerald-700">{{ ns.concluido|length }}</div>
         <div class="mt-0.5 text-xs text-slate-400">≥ 95% avance</div>
-    </a>
-    <a href="#detalle-proceso" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex items-center gap-2">
             <span class="grid h-8 w-8 place-items-center rounded-lg bg-amber-50 text-amber-600">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
@@ -171,8 +103,8 @@
         </div>
         <div class="mt-2 text-2xl font-bold text-amber-600">{{ ns.proceso|length }}</div>
         <div class="mt-0.5 text-xs text-slate-400">75% a 95% avance</div>
-    </a>
-    <a href="#detalle-riesgo" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm col-span-2 sm:col-span-1 transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-red-200">
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm col-span-2 sm:col-span-1">
         <div class="flex items-center gap-2">
             <span class="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-500">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -181,7 +113,114 @@
         </div>
         <div class="mt-2 text-2xl font-bold text-red-600">{{ ns.riesgo|length }}</div>
         <div class="mt-0.5 text-xs text-slate-400">críticos y sin dato</div>
-    </a>
+    </div>
+</div>
+
+{# ── Resumen Ejecutivo con IA ── #}
+<div class="mt-8" x-data="{ open: false }">
+    {% call panel() %}
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
+        <div>
+            <h2 class="text-base font-semibold text-slate-900 flex items-center gap-2">
+                <span class="grid h-7 w-7 place-items-center rounded-lg bg-brand-50 text-brand-700">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </span>
+                Resumen Ejecutivo con IA
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Análisis de desempeño e insights generado por inteligencia artificial.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            {% if ai_resumen %}
+            <button type="button" @click="open = !open" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-slate-100 active:scale-[0.98]">
+                <span class="text-slate-500">
+                    <template x-if="!open">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </template>
+                    <template x-if="open">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    </template>
+                </span>
+                <span x-text="open ? 'Ocultar Resumen' : 'Ver Resumen'">Ver Resumen</span>
+            </button>
+            {% endif %}
+            <form method="post" action="{{ url_for('main.panel_generar_resumen') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="gestion_id" value="{{ gestion_id }}">
+                <input type="hidden" name="periodo_id" value="{{ periodo_id }}">
+                <button type="submit" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    {% if ai_resumen %}Regenerar Resumen{% else %}Generar Resumen con IA{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+    {% if ai_resumen %}
+        <div x-show="open" style="display: none;">
+            <style>
+                #resumen-ia-content table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 1rem;
+                    margin-bottom: 2rem;
+                    border: 1px solid #e2e8f0;
+                    font-size: 0.875rem;
+                }
+                #resumen-ia-content th, #resumen-ia-content td {
+                    border: 1px solid #e2e8f0;
+                    padding: 0.75rem 1rem;
+                    text-align: left;
+                }
+                #resumen-ia-content th {
+                    background-color: #f8fafc;
+                    font-weight: 600;
+                    color: #334155;
+                }
+                #resumen-ia-content td {
+                    color: #475569;
+                }
+                #resumen-ia-content h2, #resumen-ia-content h3 {
+                    margin-top: 2rem;
+                    margin-bottom: 0.75rem;
+                    font-size: 1.125rem;
+                    font-weight: 600;
+                    color: #0f172a;
+                    border-bottom: 1px solid #f1f5f9;
+                    pb-1: 1px;
+                }
+                #resumen-ia-content h2:first-of-type {
+                    margin-top: 0.5rem;
+                }
+                #resumen-ia-content p {
+                    margin-bottom: 1.25rem;
+                    line-height: 1.6;
+                    color: #475569;
+                }
+                #resumen-ia-content ul {
+                    margin-bottom: 1.25rem;
+                    list-style-type: disc;
+                    padding-left: 1.5rem;
+                }
+                #resumen-ia-content li {
+                    margin-bottom: 0.5rem;
+                    color: #475569;
+                }
+            </style>
+            <div id="resumen-ia-content" class="prose prose-slate max-w-none text-sm text-slate-600 leading-relaxed"></div>
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const rawMarkdown = {{ ai_resumen | tojson }};
+                    document.getElementById("resumen-ia-content").innerHTML = marked.parse(rawMarkdown);
+                });
+            </script>
+        </div>
+    {% else %}
+        <div class="text-center py-6">
+            <span class="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs text-slate-500 font-medium">
+                Haz clic en el botón para generar un análisis narrativo detallado de la gestión actual.
+            </span>
+        </div>
+    {% endif %}
+    {% endcall %}
 </div>
 
 {# ── Gráficos: avance y distribución ────────────────────────────── #}
@@ -227,19 +266,8 @@
 </div>
 
 
-{# ── Detalle por estado ──────────────────────────────────────────── #}
-<div class="mt-8" id="detalle-estado">
-    <div class="mb-4">
-        <h2 class="text-base font-semibold text-slate-900">Detalle por estado</h2>
-        <p class="mt-1 text-sm text-slate-500">Haz clic en una tarjeta para ir directo al bloque correspondiente.</p>
-    </div>
-    <div class="space-y-8">
-        {{ estado_block("detalle-riesgo", "Riesgo", "border-red-200 bg-red-50 text-red-700", ns.riesgo, "No hay indicadores en riesgo para este periodo.") }}
-        {{ estado_block("detalle-proceso", "En proceso", "border-amber-200 bg-amber-50 text-amber-700", ns.proceso, "No hay indicadores en proceso para este periodo.") }}
-        {{ estado_block("detalle-concluido", "Concluido", "border-emerald-200 bg-emerald-50 text-emerald-700", ns.concluido, "No hay indicadores concluidos para este periodo.") }}
-    </div>
-</div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const barLabels = {{ bar_labels | tojson }};

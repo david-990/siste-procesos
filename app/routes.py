@@ -12,6 +12,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app import repositories as repo
 from app import services
 from app import reporte_ceplan_service
+from app import ai_service
 
 
 bp = Blueprint("main", __name__)
@@ -295,6 +296,9 @@ def panel():
     for fila in seguimiento:
         conteo_estados[fila["estado"]["nombre"]] += 1
 
+    # Obtener el resumen ejecutivo de IA si ya existe en la base de datos
+    ai_resumen = repo.get_resumen_ia(gestion_id, periodo_id)
+
     return render_template(
         "panel.html",
         gestiones=gestiones,
@@ -320,7 +324,77 @@ def panel():
             conteo_estados["Critico"],
             conteo_estados["Sin dato"],
         ],
+        ai_resumen=ai_resumen,
     )
+
+
+@bp.post("/panel/generar-resumen")
+def panel_generar_resumen():
+    gestion_id = _safe_int(request.form.get("gestion_id"))
+    periodo_id = _safe_int(request.form.get("periodo_id"))
+    
+    gestiones = repo.get_gestiones()
+    gestion = next((g for g in gestiones if g["id"] == gestion_id), None)
+    periodos = repo.get_periodos(gestion_id) if gestion_id else []
+    periodo = next((p for p in periodos if p["id"] == periodo_id), None)
+
+    if not gestion or not periodo:
+        flash("Datos de gestión o periodo inválidos.")
+        return redirect(url_for("main.panel", gestion_id=gestion_id, periodo_id=periodo_id))
+
+    seguimiento = repo.get_panel_seguimiento(gestion_id, periodo_id)
+    
+    # Calcular métricas para el prompt
+    for fila in seguimiento:
+        avance = float(fila["avance_tipo_1"]) if fila["avance_tipo_1"] is not None else None
+        fila["estado"] = _estado_avance(avance)
+
+    total_indicadores = len(seguimiento)
+    resultados = [float(f["avance_tipo_1"]) for f in seguimiento if f["avance_tipo_1"] is not None]
+
+    avances_acciones_db = repo.fetch_all(
+        """
+        SELECT aa.resultado
+        FROM avances_acciones_estrategicas aa
+        JOIN periodos p ON aa.periodo_id = p.id
+        WHERE p.id = %s AND p.gestion_id = %s AND aa.tipo_avance = 'TIPO_1'
+        """,
+        (periodo_id, gestion_id)
+    )
+    avance_acciones_promedio = sum(float(r["resultado"]) for r in avances_acciones_db) / len(avances_acciones_db) if avances_acciones_db else None
+
+    avances_objetivos_db = repo.fetch_all(
+        """
+        SELECT ao.resultado
+        FROM avances_objetivos_estrategicos ao
+        JOIN periodos p ON ao.periodo_id = p.id
+        WHERE p.id = %s AND p.gestion_id = %s AND ao.tipo_avance = 'TIPO_1'
+        """,
+        (periodo_id, gestion_id)
+    )
+    avance_objetivos_promedio = sum(float(r["resultado"]) for r in avances_objetivos_db) / len(avances_objetivos_db) if avances_objetivos_db else None
+
+    conteo_estados = {"Critico": 0, "En seguimiento": 0, "Concluido": 0, "Sin dato": 0}
+    for fila in seguimiento:
+        conteo_estados[fila["estado"]["nombre"]] += 1
+
+    # Llamar al servicio de IA
+    resumen = ai_service.generar_resumen_panel(
+        gestion_nombre=gestion["nombre"],
+        periodo_nombre=periodo["nombre"],
+        total_indicadores=total_indicadores,
+        evaluados=len(resultados),
+        avance_acciones=avance_acciones_promedio,
+        avance_objetivos=avance_objetivos_promedio,
+        conteo_estados=conteo_estados,
+        seguimiento=seguimiento
+    )
+
+    # Guardar en base de datos
+    repo.save_resumen_ia(gestion_id, periodo_id, resumen)
+    flash("Resumen ejecutivo generado con IA con éxito.")
+    
+    return redirect(url_for("main.panel", gestion_id=gestion_id, periodo_id=periodo_id))
 
 
 @bp.route("/objetivos", methods=["GET", "POST"])

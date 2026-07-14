@@ -22,4 +22,23 @@ def create_app():
     from app.routes import bp
 
     app.register_blueprint(bp)
+
+    # Inicializar tablas de IA necesarias
+    with app.app_context():
+        try:
+            from app.db import execute
+            execute(
+                """
+                CREATE TABLE IF NOT EXISTS resumenes_ia (
+                    gestion_id INT UNSIGNED NOT NULL,
+                    periodo_id SMALLINT UNSIGNED NOT NULL,
+                    resumen TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    PRIMARY KEY (gestion_id, periodo_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+                """
+            )
+        except Exception as e:
+            app.logger.error(f"Error al inicializar tabla resumenes_ia: {e}")
+
     return app
