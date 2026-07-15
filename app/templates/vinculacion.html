@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% from "components.html" import panel, input, icon %}
+
+{% block title %}Vincular Indicadores y Procesos{% endblock %}
+
+{% block content %}
+<div x-data="{
+    showModal: false,
+    editMode: false,
+    indicadorId: '',
+    indicadorCodigo: '',
+    indicadorNombre: '',
+    procesoIds: []
+}">
+    <!-- Encabezado de Página -->
+    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">Vincular Indicadores</h1>
+            <p class="mt-1 max-w-3xl text-sm leading-6 text-slate-500">Asocia indicadores estratégicos con los procesos institucionales correspondientes.</p>
+        </div>
+        <div>
+            <button type="button" @click="showModal = true; editMode = false; indicadorId = ''; indicadorCodigo = ''; indicadorNombre = ''; procesoIds = []" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+                {{ icon("plus", "h-4 w-4") }}
+                Vincular Indicador
+            </button>
+        </div>
+    </div>
+
+    <!-- Contenedor del Modal -->
+    <div x-show="showModal" class="relative z-50" style="display: none;" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Fondo Oscurecido -->
+        <div x-show="showModal"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"></div>
+
+        <!-- Cuerpo del Modal -->
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div x-show="showModal"
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     @click.away="showModal = false"
+                     class="relative transform overflow-hidden rounded-2xl bg-white p-6 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                     
+                     <div class="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
+                         <button type="button" @click="showModal = false" class="rounded-lg text-slate-400 hover:text-slate-500 focus:outline-none">
+                             <span class="sr-only">Cerrar</span>
+                             <span class="text-xl font-medium">&times;</span>
+                         </button>
+                     </div>
+                     
+                     <form method="post" class="space-y-4">
+                         <div class="mb-4 border-b border-slate-100 pb-3">
+                             <h3 class="text-lg font-bold text-slate-900" x-text="editMode ? 'Editar Vinculación' : 'Vincular Indicador'"></h3>
+                             <p class="text-sm text-slate-500" x-text="editMode ? 'Modifica los procesos vinculados al indicador.' : 'Asocia un indicador libre a uno o más procesos.'"></p>
+                         </div>
+                         
+                         <!-- Campo oculto para el ID del indicador -->
+                         <input type="hidden" name="indicador_id" :value="indicadorId">
+                         
+                         <!-- Selector de Indicador -->
+                         <div class="block">
+                             <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Indicador</span>
+                             
+                             <!-- Registro: Dropdown con indicadores libres -->
+                             <div x-show="!editMode">
+                                 <select name="indicador_id" x-model="indicadorId" :required="!editMode" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+                                     <option value="">-- Seleccionar Indicador sin Proceso --</option>
+                                     {% for ind in indicadores_libres %}
+                                         <option value="{{ ind.id }}">{{ ind.codigo }} - {{ ind.nombre_indicador }}</option>
+                                     {% endfor %}
+                                 </select>
+                             </div>
+                             
+                             <!-- Edición: Mostrar solo lectura -->
+                             <div x-show="editMode" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                                 <strong class="text-brand-700" x-text="indicadorCodigo"></strong> - <span x-text="indicadorNombre"></span>
+                             </div>
+                         </div>
+                         
+                         <!-- Checkboxes de Procesos -->
+                         <div class="block">
+                             <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Procesos Vinculados (Selecciona uno o más)</span>
+                             <div class="h-48 overflow-y-auto rounded-xl border border-slate-300 bg-white p-3 space-y-1.5 shadow-inner">
+                                 {% for proc in procesos %}
+                                 <label class="flex items-center gap-3 text-xs text-slate-700 hover:bg-slate-50 p-2 rounded cursor-pointer transition select-none">
+                                     <input type="checkbox" name="proceso_ids" value="{{ proc.id }}" :checked="procesoIds.includes({{ proc.id }})" @change="
+                                         if ($el.checked) {
+                                             if (!procesoIds.includes({{ proc.id }})) procesoIds.push({{ proc.id }});
+                                         } else {
+                                             procesoIds = procesoIds.filter(x => x != {{ proc.id }});
+                                         }
+                                     " class="rounded text-brand-600 focus:ring-brand-500 h-4 w-4 border-slate-300">
+                                     <div>
+                                         <span class="inline-flex rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-700 mr-1.5">{{ proc.codigo_proceso }}</span>
+                                         <span>{{ proc.nombre_proceso }}</span>
+                                     </div>
+                                 </label>
+                                 {% endfor %}
+                             </div>
+                         </div>
+                         
+                         <div class="mt-5 flex justify-end gap-3 border-t border-slate-100 pt-4">
+                             <button type="button" @click="showModal = false" class="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-slate-200 active:scale-[0.98]">
+                                 Cancelar
+                             </button>
+                             <button type="submit" class="inline-flex min-h-10 items-center justify-center rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+                                 Guardar
+                             </button>
+                         </div>
+                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Listado de Vinculaciones -->
+    <div class="mt-8 mb-3 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-slate-900">Vinculaciones Registradas</h2>
+        <span class="text-xs text-slate-400">{{ vinculaciones|length }} registro{{ 's' if vinculaciones|length != 1 else '' }}</span>
+    </div>
+    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="w-32 px-4 py-3 text-left font-bold">Código</th>
+                    <th class="px-4 py-3 text-left font-bold">Indicador</th>
+                    <th class="px-4 py-3 text-left font-bold">Procesos Vinculados</th>
+                    <th class="w-32 px-4 py-3 text-center font-bold">Acción</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for row in vinculaciones %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-semibold text-brand-700">{{ row.codigo }}</td>
+                    <td class="px-4 py-3 text-slate-950 font-medium leading-normal">{{ row.nombre_indicador }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex flex-wrap gap-1.5">
+                            {% for p in row.procesos %}
+                                <span class="inline-flex items-center rounded-lg bg-brand-50 border border-brand-200 px-2 py-0.5 text-xs font-semibold text-brand-700" title="{{ p.nombre_proceso }}">
+                                    {{ p.codigo_proceso }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="flex justify-center gap-2">
+                            <button type="button"
+                                    class="inline-flex items-center justify-center rounded-lg bg-brand-700 p-2 text-white shadow-sm hover:bg-brand-800 active:scale-[0.98] transition"
+                                    @click="showModal = true; editMode = true; indicadorId = '{{ row.id }}'; indicadorCodigo = '{{ row.codigo | escape | replace('\'', '\\\'') }}'; indicadorNombre = '{{ row.nombre_indicador | escape | replace('\'', '\\\'') }}'; procesoIds = {{ row.proceso_ids | tojson }}"
+                                    title="Editar">
+                                {{ icon("edit", "h-4 w-4") }}
+                            </button>
+                            <form method="post" action="{{ url_for('main.vinculacion_eliminar', indicador_id=row.id) }}">
+                                <button class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 p-2 text-red-700 hover:bg-red-100 active:scale-[0.98] transition" title="Desvincular Todos">
+                                    {{ icon("trash", "h-4 w-4") }}
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="px-4 py-10 text-center text-sm text-slate-400">No hay indicadores vinculados a procesos.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

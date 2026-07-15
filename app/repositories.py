@@ -664,3 +664,74 @@ def save_resumen_ia(gestion_id, periodo_id, resumen):
         (gestion_id, periodo_id, resumen),
     )
 
+
+def get_indicadores_sin_procesos():
+    return fetch_all(
+        """
+        SELECT i.id, i.codigo, i.nombre_indicador
+        FROM indicadores i
+        LEFT JOIN indicadores_procesos ip ON i.id = ip.indicador_id
+        WHERE ip.indicador_id IS NULL AND i.estado = 1
+        ORDER BY i.codigo
+        """
+    )
+
+
+def link_indicador_proceso(indicador_id, proceso_id):
+    import mysql.connector
+    try:
+        execute(
+            "INSERT INTO indicadores_procesos (indicador_id, proceso_id) VALUES (%s, %s)",
+            (indicador_id, proceso_id),
+        )
+        return True
+    except mysql.connector.Error:
+        return False
+
+
+def get_vinculaciones_completas():
+    return fetch_all(
+        """
+        SELECT i.codigo AS codigo_indicador, i.nombre_indicador, p.codigo_proceso, p.nombre_proceso
+        FROM indicadores_procesos ip
+        JOIN indicadores i ON ip.indicador_id = i.id
+        JOIN procesos p ON ip.proceso_id = p.id
+        ORDER BY p.codigo_proceso, i.codigo
+        """
+    )
+
+
+def get_procesos_by_indicador(indicador_id):
+    return fetch_all(
+        """
+        SELECT p.id, p.codigo_proceso, p.nombre_proceso, p.tipo_proceso
+        FROM procesos p
+        JOIN indicadores_procesos ip ON p.id = ip.proceso_id
+        WHERE ip.indicador_id = %s
+        ORDER BY p.codigo_proceso
+        """,
+        (indicador_id,)
+    )
+
+
+def get_indicadores_con_procesos():
+    return fetch_all(
+        """
+        SELECT DISTINCT i.id, i.codigo, i.nombre_indicador
+        FROM indicadores i
+        JOIN indicadores_procesos ip ON i.id = ip.indicador_id
+        WHERE i.estado = 1
+        ORDER BY i.codigo
+        """
+    )
+
+
+def save_indicador_procesos(indicador_id, proceso_ids):
+    execute("DELETE FROM indicadores_procesos WHERE indicador_id = %s", (indicador_id,))
+    if proceso_ids:
+        params = [(indicador_id, int(pid)) for pid in proceso_ids]
+        execute_many(
+            "INSERT INTO indicadores_procesos (indicador_id, proceso_id) VALUES (%s, %s)",
+            params
+        )
+

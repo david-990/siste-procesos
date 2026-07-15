@@ -167,3 +167,85 @@ REGLAS DE RESPUESTA:
     except Exception as e:
         logger.exception("Error en el chatbot de Gemini")
         return f"Error de comunicación con el asistente de IA: {str(e)}"
+
+
+def consultar_asistente_wizard(mensaje, historial, context_data, system_instruction_add=""):
+    """
+    Responde consultas del usuario utilizando el contexto estructurado de la base de datos
+    e incorporando instrucciones adicionales para guiar el asistente interactivo de vinculación.
+    """
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return "Error: No se ha configurado la API Key de Gemini en el archivo .env."
+
+    # Construir historial para la API
+    historial_filtrado = []
+    
+    # Instrucción del sistema
+    system_instruction = f"""Eres el Asistente de Gestión Oficial del sistema de monitoreo de procesos.
+Tu objetivo es responder preguntas del usuario de forma útil, concisa y basada estrictamente en la información de la base de datos provista en este prompt.
+
+CONTEXTO INSTITUCIONAL (Gestión {context_data['gestion']}):
+- Objetivos Estratégicos: {json.dumps(context_data['objetivos'])}
+- Catálogo de Procesos de la Institución: {json.dumps(context_data['procesos'])}
+- Indicadores (con su Meta Anual y Avance actual): {json.dumps(context_data['indicadores'])}
+- Líneas Base de los Indicadores: {json.dumps(context_data['lineas_base'])}
+- Metas Mensuales y Valores Obtenidos por mes: {json.dumps(context_data['valores_mensuales'])}
+- Vinculaciones Actuales entre Indicadores y Procesos: {json.dumps(context_data.get('vinculaciones_actuales', []))}
+
+REGLAS DE RESPUESTA:
+1. Responde de forma cordial, breve y profesional.
+2. Utiliza Markdown para dar formato a las listas, tablas o negritas cuando sea útil.
+3. Limítate estrictamente a los datos provistos en el contexto de arriba. Si el usuario te pregunta sobre algo que no está en el contexto, di amablemente que no posees esa información.
+4. **SEGURIDAD**: Bajo ninguna circunstancia respondas sobre usuarios, contraseñas, accesos, o la tabla de usuarios. No tienes acceso a esa información.
+5. NO inventes datos ni asumas resultados que no estén explícitamente listados.
+{system_instruction_add}
+"""
+
+    # Filtrar solo los últimos 6 mensajes del historial recibido para evitar sobrecarga
+    # Mapeamos 'assistant' a 'model' y 'user' a 'user'
+    for h in historial[:-1]:
+        role_name = "user" if h.get("role") == "user" else "model"
+        text_val = h.get("text") or ""
+        # Evitar incluir el primer mensaje de bienvenida estático
+        if "¡Hola! Soy tu asistente" in text_val:
+            continue
+        historial_filtrado.append({
+            "role": role_name,
+            "parts": [{"text": text_val}]
+        })
+
+    # Agregar la consulta actual junto con la instrucción del sistema
+    prompt_completo = f"{system_instruction}\n\nConsulta del usuario: {mensaje}"
+    historial_filtrado.append({
+        "role": "user",
+        "parts": [{"text": prompt_completo}]
+    })
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
+    
+    payload = {
+        "contents": historial_filtrado,
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 1500
+        }
+    }
+    
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=30) as response:
+            res_data = json.loads(response.read().decode("utf-8"))
+            if "candidates" in res_data and len(res_data["candidates"]) > 0:
+                parts = res_data["candidates"][0].get("content", {}).get("parts", [])
+                if parts:
+                    return parts[0].get("text", "No se pudo obtener respuesta del asistente.")
+            return "Respuesta vacía del asistente."
+    except Exception as e:
+        logger.exception("Error en el chatbot de Gemini")
+        return f"Error de comunicación con el asistente de IA: {str(e)}"

@@ -45,7 +45,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
     <script>
       tailwind.config = {
         theme: {
@@ -110,16 +113,17 @@
           {# Navegación #}
           <nav class="flex-1 space-y-0.5">
             {% set sections = [ ("Monitoreo", [ ("panel", "Panel", "panel"),
-            ("resumen", "Resumen", "resumen"), ("avances", "Avances", "avances"),
-            ("avance_tipo1", "Avance Tipo 1", "mapa"), ("mapa", "Mapa", "mapa"),
-            ]), ("Configuración", [ ("procesos", "Procesos", "procesos"),
-            ("objetivos", "Objetivos Est.", "metas_anuales"), ("acciones",
-            "Acciones Est.", "acciones"), ("indicadores", "Indicadores",
-            "indicadores"), ("lineas_base", "Línea Base", "lineas_base"),
+            ("resumen", "Resumen", "resumen"), ("avances", "Avances",
+            "avances"), ("avance_tipo1", "Avance Tipo 1", "mapa"), ("mapa",
+            "Mapa", "mapa"), ]), ("Configuración", [ ("procesos", "Procesos",
+            "procesos"), ("objetivos", "Objetivos Est.", "metas_anuales"),
+            ("acciones", "Acciones Est.", "acciones"), ("indicadores",
+            "Indicadores", "indicadores"), ("vinculacion", "Vincular Ind.",
+            "acciones"), ("lineas_base", "Línea Base", "lineas_base"),
             ("metas_anuales", "Meta Anual", "metas_anuales"), ("metas_valores",
             "Metas y Valores", "metas_valores"), ("change_password", "Cambiar
-            clave", "settings"), ]), ] %} {% for section_label, items in sections
-            %}
+            clave", "settings"), ]), ] %} {% for section_label, items in
+            sections %}
             <div class="{% if not loop.first %}mt-5{% endif %}">
               <div
                 class="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400"
@@ -148,6 +152,7 @@
           <form
             method="post"
             action="{{ url_for('main.logout') }}"
+            onsubmit="sessionStorage.removeItem('procesosAiChatHistory')"
             class="mt-4"
           >
             <button
@@ -307,17 +312,55 @@
 
     {% if not auth_view %}
     <!-- Chatbot IA Flotante -->
-    <div x-data="{ 
+    <div
+      x-data="{ 
         open: false, 
         loading: false, 
         message: '', 
-        history: [
-            { role: 'assistant', text: '¡Hola! Soy tu asistente de gestión. ¿En qué puedo ayudarte hoy?' }
-        ],
-        async sendMessage() {
-            if (!this.message.trim()) return;
-            const userText = this.message;
+        storageKey: 'procesosAiChatHistory',
+        suggestions: ['Resumen de avances', 'Indicadores críticos', 'Procesos registrados'],
+        history: [],
+        defaultHistory() {
+            return [
+                { role: 'assistant', text: 'Hola. Puedo ayudarte a consultar avances, metas, indicadores y procesos registrados.' }
+            ];
+        },
+        init() {
+            this.history = this.loadHistory();
+        },
+        loadHistory() {
+            try {
+                const stored = JSON.parse(sessionStorage.getItem(this.storageKey));
+                return Array.isArray(stored) && stored.length ? stored : this.defaultHistory();
+            } catch (error) {
+                return this.defaultHistory();
+            }
+        },
+        saveHistory() {
+            try {
+                sessionStorage.setItem(this.storageKey, JSON.stringify(this.history));
+            } catch (error) {
+                console.error(error);
+            }
+        },
+        clearChat() {
+            try {
+                sessionStorage.removeItem(this.storageKey);
+            } catch (error) {
+                console.error(error);
+            }
+            this.history = this.defaultHistory();
+            this.message = '';
+        },
+        closeChat() {
+            this.clearChat();
+            this.open = false;
+        },
+        async sendMessage(text = null) {
+            const userText = (text || this.message).trim();
+            if (!userText) return;
             this.history.push({ role: 'user', text: userText });
+            this.saveHistory();
             this.message = '';
             this.loading = true;
             
@@ -336,9 +379,11 @@
                 if (!response.ok) throw new Error('Network response not ok');
                 const data = await response.json();
                 this.history.push({ role: 'assistant', text: data.response });
+                this.saveHistory();
             } catch (e) {
                 console.error(e);
                 this.history.push({ role: 'assistant', text: 'Lo siento, ocurrió un error de comunicación con el asistente de IA.' });
+                this.saveHistory();
             } finally {
                 this.loading = false;
                 this.$nextTick(() => { this.scrollChat(); });
@@ -348,76 +393,273 @@
             const el = document.getElementById('chat-history-scroll');
             if (el) el.scrollTop = el.scrollHeight;
         }
-    }" class="fixed bottom-6 right-6 z-50">
-        <!-- Botón Flotante -->
-        <button @click="open = !open; if(open) $nextTick(() => scrollChat())" class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-700 text-white shadow-xl hover:bg-brand-800 transition active:scale-95 focus:outline-none">
-            <svg class="h-6 w-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-        </button>
+    }"
+      class="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6"
+    >
+      <!-- Botón Flotante -->
+      <button
+        @click="open = !open; if(open) $nextTick(() => scrollChat())"
+        class="group relative flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white shadow-xl shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-50 active:scale-95 focus:outline-none focus:ring-4 focus:ring-brand-200"
+        aria-label="Abrir asistente IA"
+      >
+        <span
+          x-show="!open"
+          class="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500"
+        ></span>
+        <img
+          src="{{ url_for('main.logo_ia') }}"
+          alt="IA"
+          class="h-10 w-10 transition group-hover:scale-105"
+          style="mix-blend-mode: multiply"
+        />
+      </button>
 
-        <!-- Ventana de Chat -->
-        <div x-show="open" style="display: none;" class="absolute bottom-16 right-0 w-80 sm:w-96 rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden flex flex-col h-[450px]">
-            <!-- Cabecera -->
-            <div class="bg-brand-700 p-4 text-white flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-                    <span class="font-semibold text-sm">Asistente de Procesos IA</span>
+      <!-- Ventana de Chat -->
+      <div
+        x-show="open"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="translate-y-3 opacity-0"
+        x-transition:enter-end="translate-y-0 opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="translate-y-0 opacity-100"
+        x-transition:leave-end="translate-y-2 opacity-0"
+        style="display: none"
+        class="fixed inset-x-3 bottom-20 flex h-[min(620px,calc(100vh-7rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 sm:absolute sm:inset-auto sm:bottom-16 sm:right-0 sm:h-[560px] sm:w-[26rem]"
+      >
+        <!-- Cabecera -->
+        <div
+          class="border-b border-slate-200 bg-white p-4 text-slate-900"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex min-w-0 items-center gap-3">
+              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
+                <img
+                  src="{{ url_for('main.logo_ia') }}"
+                  alt=""
+                  class="h-7 w-7"
+                  style="mix-blend-mode: multiply"
+                />
+              </div>
+              <div class="min-w-0">
+                <div class="truncate text-sm font-semibold">Asistente de Procesos IA</div>
+                <div class="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                  Consultas del sistema
                 </div>
-                <button type="button" @click="open = false" class="hover:text-slate-200">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+              </div>
             </div>
-            
-            <!-- Estilos de tabla internos para el chat -->
-            <style>
-                .chat-markdown-style table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 0.5rem;
-                    margin-bottom: 0.5rem;
-                    border: 1px solid #e2e8f0;
-                    font-size: 0.75rem;
-                }
-                .chat-markdown-style th, .chat-markdown-style td {
-                    border: 1px solid #e2e8f0;
-                    padding: 0.4rem 0.6rem;
-                    text-align: left;
-                }
-                .chat-markdown-style th {
-                    background-color: #f8fafc;
-                    font-weight: 600;
-                }
-                .chat-markdown-style ul {
-                    list-style-type: disc;
-                    padding-left: 1.25rem;
-                    margin-bottom: 0.5rem;
-                }
-                .chat-markdown-style p {
-                    margin-bottom: 0.5rem;
-                }
-            </style>
-
-            <!-- Historial -->
-            <div id="chat-history-scroll" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 text-xs">
-                <template x-for="msg in history">
-                    <div :class="msg.role === 'user' ? 'text-right' : 'text-left'">
-                        <div :class="msg.role === 'user' ? 'bg-brand-600 text-white rounded-br-none' : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'" class="inline-block max-w-[85%] rounded-2xl px-3.5 py-2.5 shadow-sm text-left chat-markdown-style" x-html="msg.role === 'assistant' ? marked.parse(msg.text) : msg.text">
-                        </div>
-                    </div>
-                </template>
-                <div x-show="loading" class="text-left">
-                    <div class="bg-white text-slate-400 border border-slate-200 rounded-2xl rounded-bl-none inline-block px-4 py-2.5 shadow-sm">
-                        Pensando...
-                    </div>
-                </div>
+            <div class="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                @click="clearChat()"
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                aria-label="Nuevo chat"
+                title="Nuevo chat"
+              >
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4 4v6h6M20 20v-6h-6M5.6 15A7 7 0 0 0 17.7 18M18.4 9A7 7 0 0 0 6.3 6"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                @click="open = false"
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                aria-label="Minimizar chat"
+              >
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M5 12h14"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                @click="closeChat()"
+                class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-200"
+                aria-label="Cerrar y borrar chat"
+              >
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
             </div>
-            <!-- Entrada -->
-            <form @submit.prevent="sendMessage()" class="p-3 border-t border-slate-100 flex gap-2 bg-white">
-                <input type="text" x-model="message" placeholder="Pregúntame sobre metas o procesos..." class="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-600" />
-                <button type="submit" class="bg-brand-700 hover:bg-brand-800 text-white rounded-xl px-4 py-2 text-xs font-semibold">Enviar</button>
-            </form>
+          </div>
         </div>
+
+        <!-- Estilos de tabla internos para el chat -->
+        <style>
+          .chat-markdown-style table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #e2e8f0;
+            font-size: 0.75rem;
+          }
+          .chat-markdown-style th,
+          .chat-markdown-style td {
+            border: 1px solid #e2e8f0;
+            padding: 0.4rem 0.6rem;
+            text-align: left;
+          }
+          .chat-markdown-style th {
+            background-color: #f8fafc;
+            font-weight: 600;
+          }
+          .chat-markdown-style ul {
+            list-style-type: disc;
+            padding-left: 1.25rem;
+            margin-bottom: 0.5rem;
+          }
+          .chat-markdown-style p {
+            margin-bottom: 0.5rem;
+          }
+          .chat-markdown-style p:last-child {
+            margin-bottom: 0;
+          }
+          .chat-markdown-style a {
+            color: #0f766e;
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+          }
+          .chat-markdown-style code {
+            border-radius: 0.4rem;
+            background-color: #f1f5f9;
+            padding: 0.1rem 0.35rem;
+            color: #334155;
+            font-size: 0.72rem;
+          }
+        </style>
+
+        <!-- Historial -->
+        <div
+          id="chat-history-scroll"
+          class="flex-1 space-y-3 overflow-y-auto bg-slate-50 px-3 py-4 text-xs sm:px-4"
+        >
+          <template x-for="(msg, index) in history" :key="index">
+            <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start gap-2'">
+              <div
+                x-show="msg.role === 'assistant'"
+                class="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-slate-200"
+              >
+                <img
+                  src="{{ url_for('main.logo_ia') }}"
+                  alt=""
+                  class="h-5 w-5"
+                  style="mix-blend-mode: multiply"
+                />
+              </div>
+              <div
+                :class="msg.role === 'user' ? 'bg-brand-700 text-white rounded-br-sm' : 'bg-white text-slate-800 border border-slate-200 rounded-bl-sm'"
+                class="inline-block max-w-[86%] rounded-2xl px-3.5 py-2.5 text-left leading-relaxed shadow-sm chat-markdown-style"
+              >
+                <template x-if="msg.role === 'assistant'">
+                  <div x-html="marked.parse(msg.text)"></div>
+                </template>
+                <template x-if="msg.role === 'user'">
+                  <span x-text="msg.text"></span>
+                </template>
+              </div>
+            </div>
+          </template>
+          <div
+            x-show="loading"
+            class="flex justify-start gap-2"
+          >
+            <div class="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-slate-200">
+              <img
+                src="{{ url_for('main.logo_ia') }}"
+                alt=""
+                class="h-5 w-5"
+                style="mix-blend-mode: multiply"
+              />
+            </div>
+            <div
+              class="inline-flex items-center gap-1 rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-4 py-3 text-slate-400 shadow-sm"
+            >
+              <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400"></span>
+              <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:120ms]"></span>
+              <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:240ms]"></span>
+            </div>
+          </div>
+        </div>
+        <div
+          x-show="history.length === 1"
+          class="border-t border-slate-100 bg-white px-3 py-2 sm:px-4"
+        >
+          <div class="flex gap-2 overflow-x-auto pb-1">
+            <template x-for="suggestion in suggestions" :key="suggestion">
+              <button
+                type="button"
+                @click="sendMessage(suggestion)"
+                class="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-medium text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+                x-text="suggestion"
+              ></button>
+            </template>
+          </div>
+        </div>
+        <!-- Entrada -->
+        <form
+          @submit.prevent="sendMessage()"
+          class="flex gap-2 border-t border-slate-100 bg-white p-3"
+        >
+          <input
+            type="text"
+            x-model="message"
+            placeholder="Pregúntame sobre metas o procesos..."
+            class="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100"
+          />
+          <button
+            type="submit"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-700 text-white transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="loading || !message.trim()"
+            aria-label="Enviar mensaje"
+          >
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 12 3.3 4.1A.75.75 0 0 1 4.3 3.2l16.2 8.1a.75.75 0 0 1 0 1.4L4.3 20.8a.75.75 0 0 1-1-.9L6 12Zm0 0h7.5"
+              />
+            </svg>
+          </button>
+        </form>
+      </div>
     </div>
     {% endif %}
   </body>

@@ -551,4 +551,12 @@ CREATE TABLE IF NOT EXISTS `resumenes_ia` (
   PRIMARY KEY (`gestion_id`,`periodo_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS `indicadores_procesos` (
+    `indicador_id` INT UNSIGNED NOT NULL,
+    `proceso_id` INT NOT NULL,
+    PRIMARY KEY (`indicador_id`, `proceso_id`),
+    CONSTRAINT `fk_ind_proc_indicador` FOREIGN KEY (`indicador_id`) REFERENCES `indicadores` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_ind_proc_proceso` FOREIGN KEY (`proceso_id`) REFERENCES `procesos` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
    SET FOREIGN_KEY_CHECKS=1;

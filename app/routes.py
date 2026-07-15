@@ -5,7 +5,7 @@ from datetime import date
 from secrets import token_urlsafe
 from time import monotonic
 
-from flask import Blueprint, abort, flash, g, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, session, url_for
 import mysql.connector
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -16,7 +16,7 @@ from app import ai_service
 
 
 bp = Blueprint("main", __name__)
-PUBLIC_ENDPOINTS = {"main.login", "static"}
+PUBLIC_ENDPOINTS = {"main.login", "static", "main.logo_ia"}
 ADMIN_ENDPOINTS = {
     "main.objetivos",
     "main.objetivo_eliminar",
@@ -27,6 +27,8 @@ ADMIN_ENDPOINTS = {
     "main.indicadores",
     "main.indicador_estado",
     "main.indicador_eliminar",
+    "main.vinculacion",
+    "main.vinculacion_eliminar",
     "main.lineas_base",
     "main.linea_base_eliminar",
     "main.metas_valores",
@@ -185,6 +187,12 @@ def _record_failed_login(username):
 
 def _clear_login_attempts(username):
     _LOGIN_ATTEMPTS.pop(_login_key(username), None)
+
+
+@bp.route("/logo-ia")
+def logo_ia():
+    logo_path = os.path.join(os.path.dirname(__file__), "logotipo-ia.png")
+    return send_file(logo_path, mimetype="image/png")
 
 
 @bp.route("/login", methods=["GET", "POST"])
@@ -694,6 +702,49 @@ def indicador_eliminar(indicador_id):
     return redirect(url_for("main.indicadores"))
 
 
+@bp.route("/vinculacion", methods=["GET", "POST"])
+def vinculacion():
+    if request.method == "POST":
+        indicador_id = _safe_int(request.form.get("indicador_id"))
+        proceso_ids = request.form.getlist("proceso_ids")
+        
+        if not indicador_id:
+            flash("Selecciona un indicador válido.")
+            return redirect(url_for("main.vinculacion"))
+        if not proceso_ids:
+            flash("Selecciona al menos un proceso para vincular.")
+            return redirect(url_for("main.vinculacion"))
+            
+        repo.save_indicador_procesos(indicador_id, proceso_ids)
+        flash("Vinculación de procesos guardada correctamente.")
+        return redirect(url_for("main.vinculacion"))
+
+    # Indicadores que ya tienen procesos vinculados
+    vinculaciones = repo.get_indicadores_con_procesos()
+    for v in vinculaciones:
+        linked = repo.get_procesos_by_indicador(v["id"])
+        v["proceso_ids"] = [p["id"] for p in linked]
+        v["procesos"] = linked
+
+    # Indicadores libres (sin procesos)
+    indicadores_libres = repo.get_indicadores_sin_procesos()
+    procesos_list = repo.get_procesos()
+
+    return render_template(
+        "vinculacion.html",
+        vinculaciones=vinculaciones,
+        indicadores_libres=indicadores_libres,
+        procesos=procesos_list
+    )
+
+
+@bp.post("/vinculacion/<int:indicador_id>/eliminar")
+def vinculacion_eliminar(indicador_id):
+    repo.save_indicador_procesos(indicador_id, [])
+    flash("Vínculo de procesos eliminado.")
+    return redirect(url_for("main.vinculacion"))
+
+
 @bp.route("/lineas-base", methods=["GET", "POST"])
 def lineas_base():
     indicadores = repo.get_indicadores()
@@ -974,7 +1025,7 @@ def avance_tipo1():
 @bp.post("/api/ai/chat")
 def api_ai_chat():
     data = request.json or {}
-    message = data.get("message", "")
+    message = data.get("message", "").strip()
     history = data.get("history", [])
 
     # Obtener gestión activa
@@ -990,6 +1041,12 @@ def api_ai_chat():
     indicadores = repo.get_panel_seguimiento(gestion_id, periodo_id)
     procesos = repo.get_procesos()
     objetivos = repo.get_objetivos()
+
+    system_instruction_add = (
+        "\nEl chat es solo consultivo. Si el usuario pide vincular indicadores con procesos, "
+        "indícale que debe hacerlo desde la pantalla tradicional de Vinculación. "
+        "No generes enlaces select:, no pidas confirmación para guardar y no afirmes que se guardaron cambios desde el chat."
+    )
     
     # Obtener todas las metas mensuales y valores obtenidos de la gestión activa
     valores_mensuales = repo.fetch_all(
@@ -1015,6 +1072,8 @@ def api_ai_chat():
         """,
         (gestion_id,)
     )
+
+    vinculaciones = repo.get_vinculaciones_completas()
     
     context_data = {
         "gestion": gestion["nombre"] if gestion else "N/A",
@@ -1048,10 +1107,18 @@ def api_ai_chat():
                 "meta_mensual": f"{vm['meta_mensual']:.2f}" if vm["meta_mensual"] is not None else "N/A",
                 "valor_obtenido": f"{vm['valor_obtenido']:.2f}" if vm["valor_obtenido"] is not None else "N/A"
             } for vm in valores_mensuales
+        ],
+        "vinculaciones_actuales": [
+            {
+                "indicador": vc["codigo_indicador"],
+                "nombre_indicador": vc["nombre_indicador"],
+                "proceso": vc["codigo_proceso"],
+                "nombre_proceso": vc["nombre_proceso"]
+            } for vc in vinculaciones
         ]
     }
 
     # Llamar a Gemini
-    response_text = ai_service.consultar_asistente(message, history, context_data)
+    response_text = ai_service.consultar_asistente_wizard(message, history, context_data, system_instruction_add)
     
     return {"response": response_text}
