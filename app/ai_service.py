@@ -53,7 +53,8 @@ Instrucciones para tu respuesta:
      * Prioridad 3: `<span class="text-slate-500 font-medium">Baja</span>`
 5. Si una categoría de estado no contiene indicadores, escribe "No se registran indicadores en este estado" en lugar de la tabla.
 6. Finaliza con una sección de **Recomendaciones de Gestión** con 2 a 3 acciones clave escritas en viñetas claras.
-7. NO inventes datos. Limítate estrictamente a la información provista.
+7. NO incluyas el modelo de Kurt Lewin en este resumen; existe un reporte separado para eso.
+8. NO inventes datos. Limítate estrictamente a la información provista.
 """
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
@@ -87,6 +88,171 @@ Instrucciones para tu respuesta:
             return "Error: Respuesta inválida o vacía de la API de Gemini."
     except Exception as e:
         logger.exception("Error al llamar a la API de Gemini")
+        return f"Error de comunicación con la IA: {str(e)}"
+
+
+def generar_kurt_lewin_panel(gestion_nombre, periodo_nombre, seguimiento):
+    """
+    Genera un análisis de implementación del modelo de Kurt Lewin para los indicadores no concluidos.
+    """
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        logger.error("No se ha configurado la variable de entorno GEMINI_API_KEY")
+        return "Error: No se ha configurado la API Key de Gemini en el archivo .env."
+
+    indicadores_str = ""
+    for f in seguimiento:
+        avance = f["avance_tipo_1"]
+        avance_str = f"{avance:.2f}%" if avance is not None else "Sin dato"
+        indicadores_str += f"- {f['codigo']}: {f['nombre_indicador']} | Avance: {avance_str} | Estado: {f['estado']['nombre']}\n"
+
+    prompt = f"""Eres un analista experto en gestión del cambio, gestión pública y monitoreo de indicadores.
+Aplica el modelo de Kurt Lewin al desempeño institucional del periodo {periodo_nombre} de la gestión {gestion_nombre}.
+
+INDICADORES DISPONIBLES:
+{indicadores_str}
+
+## IMPLEMENTACIÓN DEL MODELO DE KURT LEWIN
+
+Aplica el modelo únicamente a los indicadores que todavía no han concluido:
+
+- **Críticos:** avance menor al 75 % o sin dato.
+- **En seguimiento:** avance desde 75 % hasta menos del 95 %.
+- No analices ni muestres indicadores concluidos con avance igual o superior al 95 %.
+- Utiliza siempre el código y el nombre completo y exacto de cada indicador.
+- Ordena primero los indicadores críticos y después los indicadores en seguimiento.
+
+Aplica estas reglas del modelo:
+
+- **Descongelar:** establecer la línea base, realizar la medición inicial, diagnosticar la situación e identificar la necesidad de cambio.
+- **Cambiar:** implementar acciones de mejora, realizar seguimiento y cerrar progresivamente las brechas.
+- **Recongelar:** mantener el resultado alcanzado, estandarizar la mejora y aplicar controles o auditorías permanentes.
+
+### 1. Descongelar
+
+Explica brevemente que esta etapa permite reconocer la situación inicial, identificar las brechas y justificar la necesidad de intervenir los indicadores que todavía no alcanzan la meta.
+
+Después, presenta obligatoriamente esta tabla:
+
+| Código | Nombre completo del indicador | Línea base o avance actual | Estado | Brecha respecto al 95 % | Diagnóstico y necesidad de cambio |
+|---|---|---:|---|---:|---|
+
+Para completar la tabla:
+
+- Incluye todos los indicadores críticos y en seguimiento.
+- Utiliza el avance actual como línea base o medición inicial.
+- Calcula la brecha en puntos porcentuales respecto al 95 %.
+- Si el indicador no tiene avance, escribe “Sin dato” y no calcules una brecha inexistente.
+- En **Diagnóstico y necesidad de cambio**, explica qué revela el resultado y qué aspecto del indicador necesita mejorar.
+- El diagnóstico debe relacionarse directamente con lo que mide cada indicador.
+- No escribas diagnósticos genéricos ni repitas el mismo texto.
+- No inventes causas que no puedan deducirse del nombre, avance y estado del indicador.
+
+Después de la tabla, agrega:
+
+#### Principales necesidades de cambio identificadas
+
+Presenta de 2 a 4 viñetas que resuman las brechas más importantes. Prioriza los indicadores críticos.
+
+### 2. Cambiar
+
+Explica brevemente que esta etapa comprende la implementación de acciones correctivas y de mejora para cerrar las brechas detectadas.
+
+Después, presenta obligatoriamente esta tabla:
+
+| Código | Nombre completo del indicador | Situación que debe corregirse | Acción de mejora propuesta | Forma de verificar el avance | Prioridad | Resultado esperado |
+|---|---|---|---|---|---|---|
+
+Para completar la tabla:
+
+- Incluye los mismos indicadores críticos y en seguimiento analizados en Descongelar.
+- En **Situación que debe corregirse**, resume claramente el problema evidenciado.
+- En **Acción de mejora propuesta**, plantea una acción concreta y directamente relacionada con lo que mide el indicador.
+- En **Forma de verificar el avance**, indica qué resultado, registro, prueba, medición o control relacionado con el indicador debe revisarse.
+- Las acciones deben ser diferentes y específicas para cada indicador.
+- Asigna prioridad **Alta** a los indicadores críticos o sin dato.
+- Asigna prioridad **Media** a los indicadores en seguimiento.
+- En **Resultado esperado**, indica que debe alcanzar como mínimo el 95 %.
+- No inventes fechas, responsables, presupuestos o recursos no proporcionados.
+
+Después de la tabla, agrega:
+
+#### Orientación para ejecutar el cambio
+
+Explica que las acciones deben comenzar por los indicadores críticos y que cada nuevo resultado debe compararse con la línea base.
+
+### 3. Recongelar
+
+Explica brevemente que esta etapa busca consolidar las mejoras aplicadas y evitar retrocesos.
+
+Después, presenta obligatoriamente esta tabla:
+
+| Código | Nombre completo del indicador | Mejora que debe mantenerse | Acción de estandarización | Control o auditoría requerida | Criterio de consolidación |
+|---|---|---|---|---|---|
+
+Para completar la tabla:
+
+- Incluye los mismos indicadores analizados en Descongelar y Cambiar.
+- En **Mejora que debe mantenerse**, explica qué resultado alcanzado no debe volver a disminuir.
+- En **Acción de estandarización**, indica qué procedimiento, práctica, validación, registro o control debe documentarse e incorporarse al proceso.
+- En **Control o auditoría requerida**, indica cómo se comprobará la permanencia de la mejora.
+- En **Criterio de consolidación**, escribe que el indicador debe alcanzar y mantener un resultado igual o superior al 95 %.
+- Las acciones deben ser específicas para cada indicador.
+- No utilices el mismo texto genérico en todas las filas.
+
+Después de la tabla, agrega:
+
+#### Acciones para institucionalizar el cambio
+
+Presenta de 2 a 4 viñetas sobre documentar mejoras, actualizar procedimientos, mantener mediciones y aplicar acciones correctivas ante desviaciones.
+
+### 4. Monitoreo y mejora continua
+
+Presenta obligatoriamente esta tabla:
+
+| Código | Nombre completo del indicador | Estado inicial | Seguimiento requerido | Decisión ante desviaciones |
+|---|---|---|---|---|
+
+Incluye solamente los indicadores críticos y en seguimiento.
+
+Finaliza señalando que el cambio se considerará consolidado cuando los indicadores intervenidos alcancen y mantengan un resultado igual o superior al 95 %, las mejoras estén documentadas y su cumplimiento continúe verificándose mediante mediciones, controles o auditorías.
+
+REGLA OBLIGATORIA DE COMPLETITUD:
+
+- Cada tabla debe contener una fila completa por cada indicador crítico y en seguimiento proporcionado.
+- Está prohibido utilizar `...`, puntos suspensivos, “etc.”, “demás indicadores”, filas de ejemplo, filas resumidas o cualquier marcador que sustituya indicadores.
+- No omitas ningún indicador crítico o en seguimiento.
+- No acortes ni elimines columnas de las tablas solicitadas.
+- No cambies los encabezados establecidos.
+- Repite el código y el nombre completo del indicador en cada tabla donde corresponda.
+- No inventes datos. Limítate estrictamente a la información provista.
+"""
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 6000
+        }
+    }
+
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=30) as response:
+            res_data = json.loads(response.read().decode("utf-8"))
+            if "candidates" in res_data and len(res_data["candidates"]) > 0:
+                parts = res_data["candidates"][0].get("content", {}).get("parts", [])
+                if parts:
+                    return parts[0].get("text", "No se recibió texto de respuesta de la IA.")
+            return "Error: Respuesta inválida o vacía de la API de Gemini."
+    except Exception as e:
+        logger.exception("Error al llamar a la API de Gemini para Kurt Lewin")
         return f"Error de comunicación con la IA: {str(e)}"
 
 

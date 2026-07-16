@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }} · PDF</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+      body {
+        color: #0f172a;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #f8fafc;
+      }
+      .page {
+        max-width: 960px;
+        margin: 24px auto;
+        background: #ffffff;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+      }
+      .toolbar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 24px;
+      }
+      button {
+        border: 0;
+        border-radius: 10px;
+        background: #1d4ed8;
+        color: #ffffff;
+        cursor: pointer;
+        font-weight: 700;
+        padding: 10px 16px;
+      }
+      h1 {
+        font-size: 24px;
+        margin: 0;
+      }
+      .meta {
+        color: #64748b;
+        font-size: 13px;
+        margin-top: 8px;
+      }
+      .content {
+        font-size: 13px;
+        line-height: 1.55;
+        margin-top: 28px;
+      }
+      .content table {
+        border-collapse: collapse;
+        font-size: 11px;
+        margin: 16px 0 24px;
+        width: 100%;
+      }
+      .content th,
+      .content td {
+        border: 1px solid #cbd5e1;
+        padding: 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+      .content th {
+        background: #f1f5f9;
+      }
+      .content h2,
+      .content h3 {
+        margin-top: 24px;
+      }
+      @media print {
+        body {
+          background: #ffffff;
+        }
+        .page {
+          box-shadow: none;
+          margin: 0;
+          max-width: none;
+          padding: 0;
+        }
+        .toolbar {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="toolbar">
+        <button type="button" onclick="window.print()">Guardar como PDF</button>
+      </div>
+      <header>
+        <h1>{{ title }}</h1>
+        <div class="meta">Gestión {{ gestion.nombre }} · {{ periodo.nombre }}</div>
+      </header>
+      <section id="content" class="content"></section>
+    </main>
+    <script>
+      document.getElementById("content").innerHTML = marked.parse({{ content | tojson }});
+      window.addEventListener("load", function () {
+        window.print();
+      });
+    </script>
+  </body>
+</html>

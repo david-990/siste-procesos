@@ -116,22 +116,30 @@
     </div>
 </div>
 
-{# ── Resumen Ejecutivo con IA ── #}
-<div class="mt-8" x-data="{ open: false }">
+{# ── Análisis con IA ─────────────────────────────────────────────── #}
+<div class="mt-8" x-data="{ tab: 'resumen', open: false }">
     {% call panel() %}
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
+    <div class="flex flex-col gap-4 border-b border-slate-100 pb-4 mb-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <h2 class="text-base font-semibold text-slate-900 flex items-center gap-2">
                 <span class="grid h-7 w-7 place-items-center rounded-lg bg-brand-50 text-brand-700">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 </span>
-                Resumen Ejecutivo con IA
+                Análisis con IA
             </h2>
-            <p class="text-xs text-slate-400 mt-0.5">Análisis de desempeño e insights generado por inteligencia artificial.</p>
+            <p class="text-xs text-slate-400 mt-0.5">Genera solo el análisis que necesitas para reducir consumo de tokens.</p>
         </div>
-        <div class="flex items-center gap-2">
-            {% if ai_resumen %}
-            <button type="button" @click="open = !open" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-slate-100 active:scale-[0.98]">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+                <button type="button" @click="tab = 'resumen'; open = false" :class="tab === 'resumen' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'" class="rounded-lg px-3 py-2 text-xs font-semibold transition">
+                    Resumen Ejecutivo
+                </button>
+                <button type="button" @click="tab = 'kurt'; open = false" :class="tab === 'kurt' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'" class="rounded-lg px-3 py-2 text-xs font-semibold transition">
+                    Kurt Lewin
+                </button>
+            </div>
+            {% if ai_resumen or ai_kurt_lewin %}
+            <button type="button" x-show="(tab === 'resumen' && {{ 'true' if ai_resumen else 'false' }}) || (tab === 'kurt' && {{ 'true' if ai_kurt_lewin else 'false' }})" @click="open = !open" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm outline-none transition hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-4 focus-visible:ring-slate-100 active:scale-[0.98]" :aria-label="open ? 'Ocultar análisis' : 'Ver análisis'" :title="open ? 'Ocultar análisis' : 'Ver análisis'">
                 <span class="text-slate-500">
                     <template x-if="!open">
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -140,86 +148,91 @@
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                     </template>
                 </span>
-                <span x-text="open ? 'Ocultar Resumen' : 'Ver Resumen'">Ver Resumen</span>
             </button>
+            <a x-show="tab === 'resumen' && {{ 'true' if ai_resumen else 'false' }}" href="{{ url_for('main.panel_analisis_pdf', tipo='resumen', gestion_id=gestion_id, periodo_id=periodo_id) }}" target="_blank" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm outline-none transition hover:bg-slate-50 hover:text-red-600 focus-visible:ring-4 focus-visible:ring-slate-100 active:scale-[0.98]" aria-label="Exportar resumen en PDF" title="Exportar PDF">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/><path d="M9 18h3"/><path d="M9 12h6"/></svg>
+            </a>
+            <a x-show="tab === 'kurt' && {{ 'true' if ai_kurt_lewin else 'false' }}" href="{{ url_for('main.panel_analisis_pdf', tipo='kurt-lewin', gestion_id=gestion_id, periodo_id=periodo_id) }}" target="_blank" style="display: none;" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm outline-none transition hover:bg-slate-50 hover:text-red-600 focus-visible:ring-4 focus-visible:ring-slate-100 active:scale-[0.98]" aria-label="Exportar Kurt Lewin en PDF" title="Exportar PDF">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/><path d="M9 18h3"/><path d="M9 12h6"/></svg>
+            </a>
             {% endif %}
-            <form method="post" action="{{ url_for('main.panel_generar_resumen') }}">
+            <form x-show="tab === 'resumen'" method="post" action="{{ url_for('main.panel_generar_resumen') }}">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="gestion_id" value="{{ gestion_id }}">
                 <input type="hidden" name="periodo_id" value="{{ periodo_id }}">
-                <button type="submit" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+                <button type="submit" class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98] sm:w-auto">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                    {% if ai_resumen %}Regenerar Resumen{% else %}Generar Resumen con IA{% endif %}
+                    {% if ai_resumen %}Regenerar Resumen{% else %}Generar Resumen{% endif %}
+                </button>
+            </form>
+            <form x-show="tab === 'kurt'" method="post" action="{{ url_for('main.panel_generar_kurt_lewin') }}" style="display: none;">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="gestion_id" value="{{ gestion_id }}">
+                <input type="hidden" name="periodo_id" value="{{ periodo_id }}">
+                <button type="submit" class="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-700/20 outline-none transition hover:bg-emerald-800 focus-visible:ring-4 focus-visible:ring-emerald-200 active:scale-[0.98] sm:w-auto">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"/><path d="M5 8h14"/><path d="M7 16h10"/></svg>
+                    {% if ai_kurt_lewin %}Regenerar Kurt Lewin{% else %}Generar Kurt Lewin{% endif %}
                 </button>
             </form>
         </div>
     </div>
-    {% if ai_resumen %}
-        <div x-show="open" style="display: none;">
-            <style>
-                #resumen-ia-content table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 1rem;
-                    margin-bottom: 2rem;
-                    border: 1px solid #e2e8f0;
-                    font-size: 0.875rem;
-                }
-                #resumen-ia-content th, #resumen-ia-content td {
-                    border: 1px solid #e2e8f0;
-                    padding: 0.75rem 1rem;
-                    text-align: left;
-                }
-                #resumen-ia-content th {
-                    background-color: #f8fafc;
-                    font-weight: 600;
-                    color: #334155;
-                }
-                #resumen-ia-content td {
-                    color: #475569;
-                }
-                #resumen-ia-content h2, #resumen-ia-content h3 {
-                    margin-top: 2rem;
-                    margin-bottom: 0.75rem;
-                    font-size: 1.125rem;
-                    font-weight: 600;
-                    color: #0f172a;
-                    border-bottom: 1px solid #f1f5f9;
-                    pb-1: 1px;
-                }
-                #resumen-ia-content h2:first-of-type {
-                    margin-top: 0.5rem;
-                }
-                #resumen-ia-content p {
-                    margin-bottom: 1.25rem;
-                    line-height: 1.6;
-                    color: #475569;
-                }
-                #resumen-ia-content ul {
-                    margin-bottom: 1.25rem;
-                    list-style-type: disc;
-                    padding-left: 1.5rem;
-                }
-                #resumen-ia-content li {
-                    margin-bottom: 0.5rem;
-                    color: #475569;
-                }
-            </style>
-            <div id="resumen-ia-content" class="prose prose-slate max-w-none text-sm text-slate-600 leading-relaxed"></div>
-            <script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    const rawMarkdown = {{ ai_resumen | tojson }};
-                    document.getElementById("resumen-ia-content").innerHTML = marked.parse(rawMarkdown);
-                });
-            </script>
-        </div>
-    {% else %}
-        <div class="text-center py-6">
-            <span class="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs text-slate-500 font-medium">
-                Haz clic en el botón para generar un análisis narrativo detallado de la gestión actual.
-            </span>
-        </div>
-    {% endif %}
+
+    <style>
+        .ai-markdown-content table { width: 100%; border-collapse: collapse; margin-top: 1rem; margin-bottom: 2rem; border: 1px solid #e2e8f0; font-size: 0.875rem; }
+        .ai-markdown-content th, .ai-markdown-content td { border: 1px solid #e2e8f0; padding: 0.75rem 1rem; text-align: left; }
+        .ai-markdown-content th { background-color: #f8fafc; font-weight: 600; color: #334155; }
+        .ai-markdown-content td { color: #475569; }
+        .ai-markdown-content h2, .ai-markdown-content h3 { margin-top: 2rem; margin-bottom: 0.75rem; font-size: 1.125rem; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9; }
+        .ai-markdown-content h2:first-of-type { margin-top: 0.5rem; }
+        .ai-markdown-content p { margin-bottom: 1.25rem; line-height: 1.6; color: #475569; }
+        .ai-markdown-content ul { margin-bottom: 1.25rem; list-style-type: disc; padding-left: 1.5rem; }
+        .ai-markdown-content li { margin-bottom: 0.5rem; color: #475569; }
+    </style>
+
+    <div x-show="tab === 'resumen'">
+        {% if ai_resumen %}
+            <div x-show="open" style="display: none;" id="resumen-ia-content" class="ai-markdown-content prose prose-slate max-w-none text-sm text-slate-600 leading-relaxed"></div>
+            <div x-show="!open" class="text-center py-6">
+                <span class="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs text-slate-500 font-medium">
+                    El resumen ya está generado. Usa el icono de vista para mostrarlo.
+                </span>
+            </div>
+        {% else %}
+            <div class="text-center py-6">
+                <span class="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs text-slate-500 font-medium">
+                    Genera el resumen ejecutivo para ver el análisis narrativo del periodo seleccionado.
+                </span>
+            </div>
+        {% endif %}
+    </div>
+
+    <div x-show="tab === 'kurt'" style="display: none;">
+        {% if ai_kurt_lewin %}
+            <div x-show="open" style="display: none;" id="kurt-lewin-content" class="ai-markdown-content prose prose-slate max-w-none text-sm text-slate-600 leading-relaxed"></div>
+            <div x-show="!open" class="text-center py-6">
+                <span class="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs text-slate-500 font-medium">
+                    El modelo Kurt Lewin ya está generado. Usa el icono de vista para mostrarlo.
+                </span>
+            </div>
+        {% else %}
+            <div class="text-center py-6">
+                <span class="inline-flex items-center rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs text-slate-500 font-medium">
+                    Genera el análisis Kurt Lewin solo cuando necesites aplicar gestión del cambio a los indicadores no concluidos.
+                </span>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            {% if ai_resumen %}
+            document.getElementById("resumen-ia-content").innerHTML = marked.parse({{ ai_resumen | tojson }});
+            {% endif %}
+            {% if ai_kurt_lewin %}
+            document.getElementById("kurt-lewin-content").innerHTML = marked.parse({{ ai_kurt_lewin | tojson }});
+            {% endif %}
+        });
+    </script>
     {% endcall %}
 </div>
 

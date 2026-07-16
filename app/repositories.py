@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import mysql.connector
+
 from app.db import execute, execute_many, fetch_all, fetch_one
 
 
@@ -654,6 +656,24 @@ def get_resumen_ia(gestion_id, periodo_id):
     return row["resumen"] if row else None
 
 
+def _ensure_kurt_lewin_column():
+    execute("ALTER TABLE resumenes_ia ADD COLUMN kurt_lewin text NULL")
+
+
+def get_kurt_lewin_ia(gestion_id, periodo_id):
+    try:
+        row = fetch_one(
+            "SELECT kurt_lewin FROM resumenes_ia WHERE gestion_id = %s AND periodo_id = %s",
+            (gestion_id, periodo_id),
+        )
+    except mysql.connector.Error as error:
+        if error.errno != 1054:
+            raise
+        _ensure_kurt_lewin_column()
+        return None
+    return row["kurt_lewin"] if row else None
+
+
 def save_resumen_ia(gestion_id, periodo_id, resumen):
     execute(
         """
@@ -663,6 +683,30 @@ def save_resumen_ia(gestion_id, periodo_id, resumen):
         """,
         (gestion_id, periodo_id, resumen),
     )
+
+
+def save_kurt_lewin_ia(gestion_id, periodo_id, kurt_lewin):
+    try:
+        execute(
+            """
+            INSERT INTO resumenes_ia (gestion_id, periodo_id, resumen, kurt_lewin)
+            VALUES (%s, %s, '', %s)
+            ON DUPLICATE KEY UPDATE kurt_lewin = VALUES(kurt_lewin)
+            """,
+            (gestion_id, periodo_id, kurt_lewin),
+        )
+    except mysql.connector.Error as error:
+        if error.errno != 1054:
+            raise
+        _ensure_kurt_lewin_column()
+        execute(
+            """
+            INSERT INTO resumenes_ia (gestion_id, periodo_id, resumen, kurt_lewin)
+            VALUES (%s, %s, '', %s)
+            ON DUPLICATE KEY UPDATE kurt_lewin = VALUES(kurt_lewin)
+            """,
+            (gestion_id, periodo_id, kurt_lewin),
+        )
 
 
 def get_indicadores_sin_procesos():
@@ -678,7 +722,6 @@ def get_indicadores_sin_procesos():
 
 
 def link_indicador_proceso(indicador_id, proceso_id):
-    import mysql.connector
     try:
         execute(
             "INSERT INTO indicadores_procesos (indicador_id, proceso_id) VALUES (%s, %s)",
@@ -734,4 +777,3 @@ def save_indicador_procesos(indicador_id, proceso_ids):
             "INSERT INTO indicadores_procesos (indicador_id, proceso_id) VALUES (%s, %s)",
             params
         )
-

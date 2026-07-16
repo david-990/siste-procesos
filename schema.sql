@@ -547,6 +547,7 @@ CREATE TABLE IF NOT EXISTS `resumenes_ia` (
   `gestion_id` int unsigned NOT NULL,
   `periodo_id` smallint unsigned NOT NULL,
   `resumen` text NOT NULL,
+  `kurt_lewin` text NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`gestion_id`,`periodo_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

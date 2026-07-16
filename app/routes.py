@@ -309,6 +309,7 @@ def panel():
 
     # Obtener el resumen ejecutivo de IA si ya existe en la base de datos
     ai_resumen = repo.get_resumen_ia(gestion_id, periodo_id)
+    ai_kurt_lewin = repo.get_kurt_lewin_ia(gestion_id, periodo_id)
 
     return render_template(
         "panel.html",
@@ -336,6 +337,7 @@ def panel():
             conteo_estados["Sin dato"],
         ],
         ai_resumen=ai_resumen,
+        ai_kurt_lewin=ai_kurt_lewin,
     )
 
 
@@ -406,6 +408,71 @@ def panel_generar_resumen():
     flash("Resumen ejecutivo generado con IA con éxito.")
     
     return redirect(url_for("main.panel", gestion_id=gestion_id, periodo_id=periodo_id))
+
+
+@bp.post("/panel/generar-kurt-lewin")
+def panel_generar_kurt_lewin():
+    gestion_id = _safe_int(request.form.get("gestion_id"))
+    periodo_id = _safe_int(request.form.get("periodo_id"))
+
+    gestiones = repo.get_gestiones()
+    gestion = next((g for g in gestiones if g["id"] == gestion_id), None)
+    periodos = repo.get_periodos(gestion_id) if gestion_id else []
+    periodo = next((p for p in periodos if p["id"] == periodo_id), None)
+
+    if not gestion or not periodo:
+        flash("Datos de gestión o periodo inválidos.")
+        return redirect(url_for("main.panel", gestion_id=gestion_id, periodo_id=periodo_id))
+
+    seguimiento = repo.get_panel_seguimiento(gestion_id, periodo_id)
+    for fila in seguimiento:
+        avance = float(fila["avance_tipo_1"]) if fila["avance_tipo_1"] is not None else None
+        fila["estado"] = _estado_avance(avance)
+
+    kurt_lewin = ai_service.generar_kurt_lewin_panel(
+        gestion_nombre=gestion["nombre"],
+        periodo_nombre=periodo["nombre"],
+        seguimiento=seguimiento,
+    )
+
+    repo.save_kurt_lewin_ia(gestion_id, periodo_id, kurt_lewin)
+    flash("Implementación del modelo de Kurt Lewin generada con IA con éxito.")
+
+    return redirect(url_for("main.panel", gestion_id=gestion_id, periodo_id=periodo_id))
+
+
+@bp.get("/panel/analisis/<tipo>/pdf")
+def panel_analisis_pdf(tipo):
+    gestion_id = _safe_int(request.args.get("gestion_id"), repo.get_default_gestion_id())
+    periodo_id = _safe_int(request.args.get("periodo_id"))
+    gestiones = repo.get_gestiones()
+    gestion = next((g for g in gestiones if g["id"] == gestion_id), None)
+    periodos = repo.get_periodos(gestion_id) if gestion_id else []
+    periodo = next((p for p in periodos if p["id"] == periodo_id), None)
+
+    if not gestion or not periodo:
+        flash("Datos de gestión o periodo inválidos.")
+        return redirect(url_for("main.panel", gestion_id=gestion_id, periodo_id=periodo_id))
+
+    reports = {
+        "resumen": ("Resumen Ejecutivo con IA", repo.get_resumen_ia(gestion_id, periodo_id)),
+        "kurt-lewin": ("Implementación del Modelo de Kurt Lewin", repo.get_kurt_lewin_ia(gestion_id, periodo_id)),
+    }
+    if tipo not in reports:
+        abort(404)
+
+    title, content = reports[tipo]
+    if not content:
+        flash("Primero genera el análisis antes de exportarlo a PDF.")
+        return redirect(url_for("main.panel", gestion_id=gestion_id, periodo_id=periodo_id))
+
+    return render_template(
+        "analisis_pdf.html",
+        title=title,
+        content=content,
+        gestion=gestion,
+        periodo=periodo,
+    )
 
 
 @bp.route("/objetivos", methods=["GET", "POST"])
