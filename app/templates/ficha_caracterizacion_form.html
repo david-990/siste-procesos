@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% from "components.html" import page_header, button %}
+
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block content %}
+  {{ page_header(form_title, 'Completa la ficha de caracterización y adjunta el diagrama de actividades para el proceso.') }}
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre del proceso</span>
+          <input name="nombre_proceso" required value="{{ ficha.nombre_proceso if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Código del proceso</span>
+          <input name="codigo_proceso" required value="{{ ficha.codigo_proceso if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo de proceso</span>
+          <input name="tipo_proceso" value="{{ ficha.tipo_proceso if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Dueño del proceso</span>
+          <input name="dueno_proceso" value="{{ ficha.dueno_proceso if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Elaborado por</span>
+          <input name="elaborado_por" value="{{ ficha.elaborado_por if ficha else 'GRUPO 8' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Revisado por</span>
+          <input name="revisado_por" placeholder="Opcional" value="{{ ficha.revisado_por if ficha else '' }}" class="w-full rounded-lg border border-dashed border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm" />
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Aprobado por</span>
+          <input name="aprobado_por" placeholder="Opcional" value="{{ ficha.aprobado_por if ficha else '' }}" class="w-full rounded-lg border border-dashed border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm" />
+        </label>
+      </div>
+
+      <div class="overflow-hidden rounded-xl border border-slate-200">
+        <table class="min-w-full border-collapse text-sm">
+          <tbody>
+            <tr class="border-b border-slate-200 bg-slate-50">
+              <th class="w-1/4 border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Objetivo del proceso</th>
+              <td class="px-3 py-3">
+                <textarea name="objetivo_proceso" required rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.objetivo_proceso if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Objetivo estratégico</th>
+              <td class="px-3 py-3">
+                <textarea name="objetivo_estrategico" rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.objetivo_estrategico if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200 bg-slate-50">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Proveedor de entrada</th>
+              <td class="px-3 py-3">
+                <textarea name="proveedor_entrada" rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.proveedor_entrada if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Elementos de entrada</th>
+              <td class="px-3 py-3">
+                <textarea name="elementos_entrada" rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.elementos_entrada if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200 bg-slate-50">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Producto</th>
+              <td class="px-3 py-3">
+                <textarea name="producto" rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.producto if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Receptor del producto</th>
+              <td class="px-3 py-3">
+                <textarea name="receptor_producto" rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.receptor_producto if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200 bg-slate-50">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Riesgos</th>
+              <td class="px-3 py-3">
+                <textarea name="riesgos" rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.riesgos if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Registros</th>
+              <td class="px-3 py-3">
+                <textarea name="registros" rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.registros if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200 bg-slate-50">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Actividades del proceso</th>
+              <td class="px-3 py-3 space-y-3">
+                <div class="text-sm text-slate-500">Carga aquí el diagrama de actividades del proceso, puedes arrastrar el archivo o seleccionarlo.</div>
+                <div id="upload-dropzone" class="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500 transition-colors duration-150 hover:border-brand-400 hover:bg-slate-100">
+                  <p class="mb-2">Arrastra el archivo aquí</p>
+                  <p class="text-xs">o haz clic para seleccionar un archivo PNG, JPG, GIF o WEBP</p>
+                  <input id="actividades_proceso_imagen" type="file" name="actividades_proceso_imagen" accept="image/png,image/jpeg,image/gif,image/webp" class="mx-auto mt-3 block w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+                </div>
+                {% if ficha and ficha.actividades_proceso_imagen %}
+                  <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                    Imagen actual: <a href="{{ url_for('static', filename='uploads/' ~ ficha.actividades_proceso_imagen) }}" target="_blank" class="font-semibold text-brand-700 hover:underline">Ver archivo</a>
+                  </div>
+                {% endif %}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <a href="{{ url_for('main.fichas_caracterizacion') }}" class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Cancelar</a>
+        {{ button(submit_label) }}
+      </div>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const dropzone = document.getElementById('upload-dropzone');
+      const fileInput = document.getElementById('actividades_proceso_imagen');
+
+      if (!dropzone || !fileInput) {
+        return;
+      }
+
+      dropzone.addEventListener('click', function () {
+        fileInput.click();
+      });
+
+      dropzone.addEventListener('dragover', function (event) {
+        event.preventDefault();
+        dropzone.classList.add('border-brand-400', 'bg-slate-100');
+      });
+
+      dropzone.addEventListener('dragleave', function () {
+        dropzone.classList.remove('border-brand-400', 'bg-slate-100');
+      });
+
+      dropzone.addEventListener('drop', function (event) {
+        event.preventDefault();
+        dropzone.classList.remove('border-brand-400', 'bg-slate-100');
+        const files = event.dataTransfer.files;
+        if (files.length) {
+          fileInput.files = files;
+        }
+      });
+    });
+  </script>
+{% endblock %}

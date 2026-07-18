@@ -648,6 +648,117 @@ def save_mapa(imagen_filename):
     return execute("INSERT INTO mapa (imagen) VALUES (%s)", (imagen_filename,))
 
 
+def _ensure_ficha_caracterizacion_table():
+    execute(
+        """
+        CREATE TABLE IF NOT EXISTS fichas_caracterizacion (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            codigo_proceso VARCHAR(255) NULL,
+            nombre_proceso VARCHAR(255) NULL,
+            tipo_proceso VARCHAR(255) NULL,
+            dueno_proceso VARCHAR(255) NULL,
+            objetivo_proceso TEXT NULL,
+            objetivo_estrategico TEXT NULL,
+            proveedor_entrada TEXT NULL,
+            elementos_entrada TEXT NULL,
+            producto TEXT NULL,
+            receptor_producto TEXT NULL,
+            actividades_proceso_imagen VARCHAR(255) NULL,
+            riesgos TEXT NULL,
+            registros TEXT NULL,
+            elaborado_por VARCHAR(255) NULL,
+            revisado_por VARCHAR(255) NULL,
+            aprobado_por VARCHAR(255) NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+        """
+    )
+
+
+def get_fichas_caracterizacion():
+    _ensure_ficha_caracterizacion_table()
+    return fetch_all(
+        """
+        SELECT id, codigo_proceso, nombre_proceso, tipo_proceso, dueno_proceso,
+               objetivo_proceso, objetivo_estrategico, proveedor_entrada,
+               elementos_entrada, producto, receptor_producto,
+               actividades_proceso_imagen, riesgos, registros,
+               elaborado_por, revisado_por, aprobado_por, created_at
+        FROM fichas_caracterizacion
+        ORDER BY id DESC
+        """
+    )
+
+
+def get_ficha_caracterizacion(ficha_id):
+    _ensure_ficha_caracterizacion_table()
+    return fetch_one(
+        """
+        SELECT id, codigo_proceso, nombre_proceso, tipo_proceso, dueno_proceso,
+               objetivo_proceso, objetivo_estrategico, proveedor_entrada,
+               elementos_entrada, producto, receptor_producto,
+               actividades_proceso_imagen, riesgos, registros,
+               elaborado_por, revisado_por, aprobado_por, created_at
+        FROM fichas_caracterizacion
+        WHERE id = %s
+        """,
+        (ficha_id,),
+    )
+
+
+def save_ficha_caracterizacion(data, ficha_id=None):
+    _ensure_ficha_caracterizacion_table()
+    params = (
+        data.get("codigo_proceso", "").strip(),
+        data.get("nombre_proceso", "").strip(),
+        data.get("tipo_proceso") or None,
+        data.get("dueno_proceso") or None,
+        data.get("objetivo_proceso") or None,
+        data.get("objetivo_estrategico") or None,
+        data.get("proveedor_entrada") or None,
+        data.get("elementos_entrada") or None,
+        data.get("producto") or None,
+        data.get("receptor_producto") or None,
+        data.get("actividades_proceso_imagen") or None,
+        data.get("riesgos") or None,
+        data.get("registros") or None,
+        data.get("elaborado_por") or None,
+        data.get("revisado_por") or None,
+        data.get("aprobado_por") or None,
+    )
+    if ficha_id:
+        execute(
+            """
+            UPDATE fichas_caracterizacion
+            SET codigo_proceso=%s, nombre_proceso=%s, tipo_proceso=%s, dueno_proceso=%s,
+                objetivo_proceso=%s, objetivo_estrategico=%s, proveedor_entrada=%s,
+                elementos_entrada=%s, producto=%s, receptor_producto=%s,
+                actividades_proceso_imagen=%s, riesgos=%s, registros=%s,
+                elaborado_por=%s, revisado_por=%s, aprobado_por=%s,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE id=%s
+            """,
+            (*params, ficha_id),
+        )
+        return ficha_id
+    return execute(
+        """
+        INSERT INTO fichas_caracterizacion (
+            codigo_proceso, nombre_proceso, tipo_proceso, dueno_proceso,
+            objetivo_proceso, objetivo_estrategico, proveedor_entrada,
+            elementos_entrada, producto, receptor_producto,
+            actividades_proceso_imagen, riesgos, registros,
+            elaborado_por, revisado_por, aprobado_por
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        params,
+    )
+
+def delete_ficha_caracterizacion(ficha_id):
+    execute("DELETE FROM fichas_caracterizacion WHERE id = %s", (ficha_id,))
+
+
 def get_resumen_ia(gestion_id, periodo_id):
     row = fetch_one(
         "SELECT resumen FROM resumenes_ia WHERE gestion_id = %s AND periodo_id = %s",

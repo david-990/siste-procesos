@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "components.html" import page_header, button %}
+
+{% block title %}Ficha de Caracterización{% endblock %}
+
+{% block content %}
+  {{ page_header('Ficha de Caracterización', 'Lista de fichas registradas con acceso rápido para ver y editar cada ficha.') }}
+
+  <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-sm text-slate-500">Aquí puedes revisar todas las fichas de caracterización almacenadas.</p>
+    <a href="{{ url_for('main.ficha_caracterizacion_nueva') }}" class="inline-flex items-center justify-center rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-800">
+      Agregar ficha
+    </a>
+  </div>
+
+  {% if fichas %}
+    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50">
+            <tr>
+              <th class="px-3 py-3 text-left font-semibold text-slate-700">Código</th>
+              <th class="px-3 py-3 text-left font-semibold text-slate-700">Proceso</th>
+              <th class="px-3 py-3 text-left font-semibold text-slate-700">Dueño</th>
+              <th class="px-3 py-3 text-left font-semibold text-slate-700">Elaborado por</th>
+              <th class="px-3 py-3 text-left font-semibold text-slate-700">Aprobado por</th>
+              <th class="px-3 py-3 text-left font-semibold text-slate-700">Imagen</th>
+              <th class="px-3 py-3 text-left font-semibold text-slate-700">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 bg-white">
+            {% for ficha in fichas %}
+              <tr>
+                <td class="px-3 py-3 text-slate-700">{{ ficha.codigo_proceso }}</td>
+                <td class="px-3 py-3 text-slate-700">{{ ficha.nombre_proceso }}</td>
+                <td class="px-3 py-3 text-slate-700">{{ ficha.dueno_proceso or '-' }}</td>
+                <td class="px-3 py-3 text-slate-700">{{ ficha.elaborado_por or '-' }}</td>
+                <td class="px-3 py-3 text-slate-700">{{ ficha.aprobado_por or '-' }}</td>
+                <td class="px-3 py-3 text-slate-700">
+                  {% if ficha.actividades_proceso_imagen %}
+                    <a href="{{ url_for('static', filename='uploads/' ~ ficha.actividades_proceso_imagen) }}" target="_blank" class="text-brand-700 hover:underline">Ver imagen</a>
+                  {% else %}
+                    <span class="text-slate-400">Sin imagen</span>
+                  {% endif %}
+                </td>
+                <td class="px-3 py-3 text-slate-700">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <a href="{{ url_for('main.ficha_caracterizacion_ver', ficha_id=ficha.id) }}" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-100">Ver ficha completo</a>
+                    <a href="{{ url_for('main.ficha_caracterizacion_editar', ficha_id=ficha.id) }}" class="inline-flex items-center justify-center rounded-full border border-brand-700 bg-white px-3 py-1 text-sm font-semibold text-brand-700 hover:bg-brand-50">Editar ficha</a>
+                    <form method="post" action="{{ url_for('main.ficha_caracterizacion_eliminar', ficha_id=ficha.id) }}" class="inline-flex delete-ficha-form" data-nombre="{{ ficha.nombre_proceso }}">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="inline-flex items-center justify-center rounded-full border border-red-200 bg-red-50 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-100">Eliminar</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-lg font-semibold text-slate-900">No hay fichas registradas</h2>
+      <p class="mt-2 text-sm text-slate-500">Puedes crear la primera ficha de caracterización para registrar el proceso y sus responsabilidades.</p>
+    </div>
+  {% endif %}
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.delete-ficha-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var nombre = form.dataset.nombre || 'esta ficha';
+          Swal.fire({
+            title: 'Eliminar la ficha de "' + nombre + '"?',
+            text: 'No podrás recuperar esta ficha después de eliminarla.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+              confirmButton: 'bg-red-600 hover:bg-red-700',
+              cancelButton: 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }
+          }).then(function (result) {
+            if (result.isConfirmed) {
+              form.submit();
+            }
+          });
+        });
+      });
+    });
+  </script>
+{% endblock %}

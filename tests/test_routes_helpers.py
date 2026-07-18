@@ -1,3 +1,5 @@
+import io
+
 from app import create_app
 from app import repositories as repo
 from app import routes
@@ -127,3 +129,160 @@ def test_change_password_updates_hash(monkeypatch):
 
     assert response.status_code == 302
     assert 1 in saved
+
+
+def test_ficha_caracterizacion_list_page(monkeypatch):
+    app = create_app()
+    monkeypatch.setattr(repo, "get_fichas_caracterizacion", lambda: [])
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = 1
+            session["_csrf_token"] = "test-token"
+
+        response = client.get("/ficha-caracterizacion")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Ficha de Caracterización" in html
+    assert "Agregar ficha" in html
+
+
+def test_ficha_caracterizacion_new_page_renders_form(monkeypatch):
+    app = create_app()
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = 1
+            session["_csrf_token"] = "test-token"
+
+        response = client.get("/ficha-caracterizacion/nueva")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Agregar ficha de caracterización" in html
+    assert "Adjuntar imagen del diagrama" in html
+
+
+def test_ficha_caracterizacion_post_saves_data_and_upload(monkeypatch):
+    app = create_app()
+    saved = {}
+    monkeypatch.setattr(repo, "save_ficha_caracterizacion", lambda data, ficha_id=None: saved.update({"data": data, "id": ficha_id}))
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = 1
+            session["_csrf_token"] = "test-token"
+
+        response = client.post(
+            "/ficha-caracterizacion/nueva",
+            data={
+                "_csrf_token": "test-token",
+                "codigo_proceso": "GC-01",
+                "nombre_proceso": "Gestión de calidad",
+                "tipo_proceso": "Misional",
+                "dueno_proceso": "Ana",
+                "objetivo_proceso": "Mejorar el proceso",
+                "objetivo_estrategico": "Estrategia",
+                "proveedor_entrada": "Área TI",
+                "elementos_entrada": "Solicitud",
+                "producto": "Informe",
+                "receptor_producto": "Usuarios",
+                "riesgos": "Retraso",
+                "registros": "Registro",
+                "elaborado_por": "GRUPO 8",
+                "revisado_por": "",
+                "aprobado_por": "",
+                "actividades_proceso_imagen": (io.BytesIO(b"fake-image"), "diagrama.png"),
+            },
+            content_type="multipart/form-data",
+        )
+
+    assert response.status_code == 302
+    assert saved["data"]["elaborado_por"] == "GRUPO 8"
+    assert saved["data"]["revisado_por"] is None
+    assert saved["data"]["aprobado_por"] is None
+    assert saved["data"]["actividades_proceso_imagen"].endswith(".png")
+    assert saved["data"]["dueno_proceso"] == "Ana"
+
+
+def test_ficha_caracterizacion_view_page(monkeypatch):
+    app = create_app()
+    monkeypatch.setattr(
+        repo,
+        "get_ficha_caracterizacion",
+        lambda ficha_id: {
+            "id": ficha_id,
+            "codigo_proceso": "GC-01",
+            "nombre_proceso": "Gestión de calidad",
+            "tipo_proceso": "Misional",
+            "dueno_proceso": "Ana",
+            "objetivo_proceso": "Mejorar el proceso",
+            "objetivo_estrategico": "Estrategia",
+            "proveedor_entrada": "Área TI",
+            "elementos_entrada": "Solicitud",
+            "producto": "Informe",
+            "receptor_producto": "Usuarios",
+            "actividades_proceso_imagen": "diagrama.png",
+            "riesgos": "Retraso",
+            "registros": "Registro",
+            "elaborado_por": "GRUPO 8",
+            "revisado_por": None,
+            "aprobado_por": None,
+            "created_at": "2026-07-18 12:00:00",
+        },
+    )
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = 1
+            session["_csrf_token"] = "test-token"
+
+        response = client.get("/ficha-caracterizacion/1")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Gestión de calidad" in html
+    assert "Diagrama de actividades" in html
+    assert "Editar ficha" in html
+
+
+def test_ficha_caracterizacion_edit_page(monkeypatch):
+    app = create_app()
+    monkeypatch.setattr(
+        repo,
+        "get_ficha_caracterizacion",
+        lambda ficha_id: {
+            "id": ficha_id,
+            "codigo_proceso": "GC-01",
+            "nombre_proceso": "Gestión de calidad",
+            "tipo_proceso": "Misional",
+            "dueno_proceso": "Ana",
+            "objetivo_proceso": "Mejorar el proceso",
+            "objetivo_estrategico": "Estrategia",
+            "proveedor_entrada": "Área TI",
+            "elementos_entrada": "Solicitud",
+            "producto": "Informe",
+            "receptor_producto": "Usuarios",
+            "actividades_proceso_imagen": "diagrama.png",
+            "riesgos": "Retraso",
+            "registros": "Registro",
+            "elaborado_por": "GRUPO 8",
+            "revisado_por": None,
+            "aprobado_por": None,
+            "created_at": "2026-07-18 12:00:00",
+        },
+    )
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = 1
+            session["_csrf_token"] = "test-token"
+
+        response = client.get("/ficha-caracterizacion/1/editar")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Editar ficha de caracterización" in html
+    assert "GC-01" in html
+    assert "Ver archivo" in html

@@ -8,6 +8,7 @@ from time import monotonic
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, session, url_for
 import mysql.connector
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 from app import repositories as repo
 from app import services
@@ -146,7 +147,6 @@ def protect_requests():
         g.current_user = repo.get_user_by_id(session["user_id"]) if session.get("user_id") else None
     except mysql.connector.Error:
         g.current_user = None
-        raise
     if request.endpoint in ADMIN_ENDPOINTS and (not g.current_user or g.current_user["role"] != "ADMIN"):
         abort(403)
     if request.endpoint == "main.avances" and request.method == "POST" and g.current_user["role"] != "ADMIN":
@@ -602,6 +602,115 @@ def proceso_eliminar(proceso_id):
     repo.delete_proceso(proceso_id)
     flash("Proceso eliminado.")
     return redirect(url_for("main.procesos"))
+
+
+@bp.route("/ficha-caracterizacion")
+def fichas_caracterizacion():
+    fichas = repo.get_fichas_caracterizacion()
+    return render_template("ficha_caracterizacion_list.html", fichas=fichas)
+
+
+def _save_ficha_form(ficha=None):
+    required_fields = [
+        ("nombre_proceso", "El nombre del proceso es requerido."),
+        ("codigo_proceso", "El código del proceso es requerido."),
+        ("objetivo_proceso", "El objetivo del proceso es requerido."),
+    ]
+    errors = []
+    for field_name, message in required_fields:
+        if not request.form.get(field_name, "").strip():
+            errors.append(message)
+    if errors:
+        for err in errors:
+            flash(err)
+        return None
+
+    upload_filename = ficha["actividades_proceso_imagen"] if ficha else None
+    uploaded_file = request.files.get("actividades_proceso_imagen")
+    if uploaded_file and uploaded_file.filename:
+        allowed_extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+        _, ext = os.path.splitext(uploaded_file.filename.lower())
+        if ext not in allowed_extensions:
+            flash("Tipo de archivo no permitido. Solo se aceptan imágenes PNG, JPG, GIF o WEBP.")
+            return None
+
+        upload_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
+        os.makedirs(upload_folder, exist_ok=True)
+        safe_name = secure_filename(uploaded_file.filename)
+        if not safe_name:
+            safe_name = f"ficha_{int(time.time())}{ext}"
+        upload_filename = f"ficha_{int(time.time())}_{safe_name}"
+        uploaded_file.save(os.path.join(upload_folder, upload_filename))
+        if ficha and ficha.get("actividades_proceso_imagen"):
+            old_path = os.path.join(upload_folder, ficha["actividades_proceso_imagen"])
+            if os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception:
+                    pass
+
+    data = {
+        "codigo_proceso": request.form.get("codigo_proceso", "").strip(),
+        "nombre_proceso": request.form.get("nombre_proceso", "").strip(),
+        "tipo_proceso": _optional_value("tipo_proceso"),
+        "dueno_proceso": _optional_value("dueno_proceso"),
+        "objetivo_proceso": request.form.get("objetivo_proceso", "").strip(),
+        "objetivo_estrategico": _optional_value("objetivo_estrategico"),
+        "proveedor_entrada": _optional_value("proveedor_entrada"),
+        "elementos_entrada": _optional_value("elementos_entrada"),
+        "producto": _optional_value("producto"),
+        "receptor_producto": _optional_value("receptor_producto"),
+        "actividades_proceso_imagen": upload_filename,
+        "riesgos": _optional_value("riesgos"),
+        "registros": _optional_value("registros"),
+        "elaborado_por": request.form.get("elaborado_por", "").strip() or "GRUPO 8",
+        "revisado_por": _optional_value("revisado_por"),
+        "aprobado_por": _optional_value("aprobado_por"),
+    }
+    if ficha:
+        repo.save_ficha_caracterizacion(data, ficha_id=ficha["id"])
+    else:
+        repo.save_ficha_caracterizacion(data)
+    return data
+
+
+@bp.route("/ficha-caracterizacion/nueva", methods=["GET", "POST"])
+def ficha_caracterizacion_nueva():
+    if request.method == "POST":
+        if _save_ficha_form() is not None:
+            flash("Ficha de caracterización registrada correctamente.")
+            return redirect(url_for("main.fichas_caracterizacion"))
+    return render_template("ficha_caracterizacion_form.html", ficha=None, form_title="Agregar ficha de caracterización", submit_label="Guardar ficha")
+
+
+@bp.route("/ficha-caracterizacion/<int:ficha_id>")
+def ficha_caracterizacion_ver(ficha_id):
+    ficha = repo.get_ficha_caracterizacion(ficha_id)
+    if not ficha:
+        abort(404)
+    return render_template("ficha_caracterizacion_view.html", ficha=ficha)
+
+
+@bp.route("/ficha-caracterizacion/<int:ficha_id>/editar", methods=["GET", "POST"])
+def ficha_caracterizacion_editar(ficha_id):
+    ficha = repo.get_ficha_caracterizacion(ficha_id)
+    if not ficha:
+        abort(404)
+    if request.method == "POST":
+        if _save_ficha_form(ficha) is not None:
+            flash("Ficha de caracterización actualizada correctamente.")
+            return redirect(url_for("main.fichas_caracterizacion"))
+    return render_template("ficha_caracterizacion_form.html", ficha=ficha, form_title="Editar ficha de caracterización", submit_label="Actualizar ficha")
+
+
+@bp.post("/ficha-caracterizacion/<int:ficha_id>/eliminar")
+def ficha_caracterizacion_eliminar(ficha_id):
+    ficha = repo.get_ficha_caracterizacion(ficha_id)
+    if not ficha:
+        abort(404)
+    repo.delete_ficha_caracterizacion(ficha_id)
+    flash("Ficha de caracterización eliminada.")
+    return redirect(url_for("main.fichas_caracterizacion"))
 
 
 @bp.route("/mapa", methods=["GET", "POST"])

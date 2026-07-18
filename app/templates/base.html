@@ -90,7 +90,7 @@
         id="sidebar"
         class="fixed inset-y-0 left-0 z-30 w-72 -translate-x-full border-r border-slate-200 bg-white shadow-xl md:translate-x-0 md:shadow-none"
       >
-        <div class="flex h-full flex-col px-5 py-6">
+        <div class="flex h-full min-h-0 flex-col px-5 py-6">
           {# Logo y nombre #}
           <div class="flex items-center gap-3 mb-8">
             <div
@@ -111,12 +111,12 @@
           </div>
 
           {# Navegación #}
-          <nav class="flex-1 space-y-0.5">
+          <nav class="flex-1 min-h-0 overflow-y-auto space-y-0.5 pr-1">
             {% set sections = [ ("Monitoreo", [ ("panel", "Panel", "panel"),
             ("resumen", "Resumen", "resumen"), ("avances", "Avances",
             "avances"), ("avance_tipo1", "Avance Tipo 1", "mapa"), ("mapa",
             "Mapa", "mapa"), ]), ("Configuración", [ ("procesos", "Procesos",
-            "procesos"), ("objetivos", "Objetivos Est.", "metas_anuales"),
+            "procesos"), ("fichas_caracterizacion", "Ficha de Caracterización", "mapa"), ("objetivos", "Objetivos Est.", "metas_anuales"),
             ("acciones", "Acciones Est.", "acciones"), ("indicadores",
             "Indicadores", "indicadores"), ("vinculacion", "Vincular Ind.",
             "acciones"), ("lineas_base", "Línea Base", "lineas_base"),
