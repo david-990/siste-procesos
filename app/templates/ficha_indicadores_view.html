@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% from "components.html" import page_header %}
+
+{% block title %}Ficha de Indicadores - {{ ficha.nombre_indicador }}{% endblock %}
+
+{% block content %}
+  {{ page_header('Ficha de Indicadores', 'Visualiza la ficha completa de indicadores con logros esperados de enero a junio.') }}
+
+  <div class="overflow-x-auto rounded-3xl border border-slate-200 bg-slate-50 shadow-xl ring-1 ring-slate-200/60">
+    <table class="min-w-full border-collapse text-sm">
+      <tbody>
+        <tr class="bg-brand-700 text-white text-left text-xs font-semibold uppercase tracking-wide">
+          <td class="border border-slate-300 px-4 py-3">Ficha de caracterización</td>
+          <td class="border border-slate-300 px-4 py-3" colspan="3">{{ ficha.ficha_caracterizacion_nombre or '-' }}</td>
+        </tr>
+        <tr class="border-b border-slate-200">
+          <td class="border border-slate-300 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Proceso</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.proceso or '-' }}</td>
+          <td class="border border-slate-300 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Producto</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.producto or '-' }}</td>
+        </tr>
+        <tr class="border-b border-slate-200 bg-slate-100">
+          <td class="border border-slate-300 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre del indicador</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.nombre_indicador or '-' }}</td>
+          <td class="border border-slate-300 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.tipo_indicador or '-' }}</td>
+        </tr>
+        <tr class="border-b border-slate-200">
+          <td class="border border-slate-300 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Justificación</td>
+          <td class="border border-slate-300 px-4 py-3" colspan="3">{{ ficha.justificacion or '-' }}</td>
+        </tr>
+        <tr class="bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <td class="border border-slate-300 px-4 py-3">Responsable</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.responsable or '-' }}</td>
+          <td class="border border-slate-300 px-4 py-3">Sentido esperado</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.sentido_esperado or '-' }}</td>
+        </tr>
+        <tr class="border-b border-slate-200">
+          <td class="border border-slate-300 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Unidad de medida</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.unidad_medida or '-' }}</td>
+          <td class="border border-slate-300 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Frecuencia</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.frecuencia or '-' }}</td>
+        </tr>
+        <tr class="bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <td class="border border-slate-300 px-4 py-3">Método de cálculo</td>
+          <td class="border border-slate-300 px-4 py-3" colspan="3">{{ ficha.metodo_calculo or '-' }}</td>
+        </tr>
+        <tr class="border-b border-slate-200">
+          <td class="border border-slate-300 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Fuente de datos</td>
+          <td class="border border-slate-300 px-4 py-3" colspan="3">{{ ficha.fuente_datos or '-' }}</td>
+        </tr>
+        <tr class="bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <td class="border border-slate-300 px-4 py-3">Línea de base / Ene.</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.valor_enero or '-' }}</td>
+          <td class="border border-slate-300 px-4 py-3">Febrero</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.valor_febrero or '-' }}</td>
+        </tr>
+        <tr class="border-b border-slate-200 bg-slate-100">
+          <td class="border border-slate-300 px-4 py-3">Marzo</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.valor_marzo or '-' }}</td>
+          <td class="border border-slate-300 px-4 py-3">Abril</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.valor_abril or '-' }}</td>
+        </tr>
+        <tr class="border-b border-slate-200">
+          <td class="border border-slate-300 px-4 py-3 bg-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-500">Mayo</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.valor_mayo or '-' }}</td>
+          <td class="border border-slate-300 px-4 py-3 bg-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-500">Junio</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.valor_junio or '-' }}</td>
+        </tr>
+        <tr class="bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <td class="border border-slate-300 px-4 py-3">Elaborado por</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.elaborado_por or '-' }}</td>
+          <td class="border border-slate-300 px-4 py-3">Revisado por</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.revisado_por or '-' }}</td>
+        </tr>
+        <tr>
+          <td class="border border-slate-300 px-4 py-3">Aprobado por</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.aprobado_por or '-' }}</td>
+          <td class="border border-slate-300 px-4 py-3">Fecha de registro</td>
+          <td class="border border-slate-300 px-4 py-3">{{ ficha.created_at or '-' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-6 flex flex-wrap items-center gap-3">
+    <a href="{{ url_for('main.fichas_indicadores') }}" class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Volver al listado</a>
+    <a href="{{ url_for('main.ficha_indicadores_editar', ficha_id=ficha.id) }}" class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Editar ficha</a>
+    <form method="post" action="{{ url_for('main.ficha_indicadores_eliminar', ficha_id=ficha.id) }}" class="inline-flex delete-ficha-form" data-nombre="{{ ficha.nombre_indicador }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">Eliminar</button>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.delete-ficha-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var nombre = form.dataset.nombre || 'esta ficha';
+          Swal.fire({
+            title: 'Eliminar la ficha de "' + nombre + '"?',
+            text: 'No podrás recuperar esta ficha después de eliminarla.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+              confirmButton: 'bg-red-600 hover:bg-red-700',
+              cancelButton: 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }
+          }).then(function (result) {
+            if (result.isConfirmed) {
+              form.submit();
+            }
+          });
+        });
+      });
+    });
+  </script>
+{% endblock %}

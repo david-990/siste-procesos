@@ -759,6 +759,137 @@ def delete_ficha_caracterizacion(ficha_id):
     execute("DELETE FROM fichas_caracterizacion WHERE id = %s", (ficha_id,))
 
 
+def _ensure_ficha_indicadores_table():
+    execute(
+        """
+        CREATE TABLE IF NOT EXISTS fichas_indicadores (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            ficha_caracterizacion_id INT UNSIGNED NOT NULL,
+            proceso VARCHAR(255) NOT NULL,
+            producto VARCHAR(255) NOT NULL,
+            nombre_indicador VARCHAR(255) NOT NULL,
+            tipo_indicador VARCHAR(100) NOT NULL,
+            justificacion TEXT NULL,
+            responsable VARCHAR(255) NOT NULL,
+            metodo_calculo TEXT NULL,
+            sentido_esperado VARCHAR(100) NOT NULL,
+            unidad_medida VARCHAR(100) NOT NULL,
+            frecuencia VARCHAR(100) NOT NULL,
+            fuente_datos VARCHAR(255) NOT NULL,
+            valor_enero VARCHAR(50) NULL,
+            valor_febrero VARCHAR(50) NULL,
+            valor_marzo VARCHAR(50) NULL,
+            valor_abril VARCHAR(50) NULL,
+            valor_mayo VARCHAR(50) NULL,
+            valor_junio VARCHAR(50) NULL,
+            elaborado_por VARCHAR(150) NULL,
+            revisado_por VARCHAR(150) NULL,
+            aprobado_por VARCHAR(150) NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (ficha_caracterizacion_id) REFERENCES fichas_caracterizacion(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+        """
+    )
+
+
+def get_fichas_indicadores():
+    _ensure_ficha_indicadores_table()
+    return fetch_all(
+        """
+        SELECT fi.id, fi.ficha_caracterizacion_id, fi.proceso, fi.producto,
+               fi.nombre_indicador, fi.tipo_indicador, fi.justificacion,
+               fi.responsable, fi.metodo_calculo, fi.sentido_esperado,
+               fi.unidad_medida, fi.frecuencia, fi.fuente_datos,
+               fi.valor_enero, fi.valor_febrero, fi.valor_marzo, fi.valor_abril,
+               fi.valor_mayo, fi.valor_junio,
+               fi.elaborado_por, fi.revisado_por, fi.aprobado_por, fi.created_at,
+               fc.nombre_proceso AS ficha_caracterizacion_nombre
+        FROM fichas_indicadores fi
+        LEFT JOIN fichas_caracterizacion fc ON fi.ficha_caracterizacion_id = fc.id
+        ORDER BY fi.id DESC
+        """
+    )
+
+
+def get_ficha_indicador(ficha_id):
+    _ensure_ficha_indicadores_table()
+    return fetch_one(
+        """
+        SELECT fi.id, fi.ficha_caracterizacion_id, fi.proceso, fi.producto,
+               fi.nombre_indicador, fi.tipo_indicador, fi.justificacion,
+               fi.responsable, fi.metodo_calculo, fi.sentido_esperado,
+               fi.unidad_medida, fi.frecuencia, fi.fuente_datos,
+               fi.valor_enero, fi.valor_febrero, fi.valor_marzo, fi.valor_abril,
+               fi.valor_mayo, fi.valor_junio,
+               fi.elaborado_por, fi.revisado_por, fi.aprobado_por, fi.created_at,
+               fc.nombre_proceso AS ficha_caracterizacion_nombre
+        FROM fichas_indicadores fi
+        LEFT JOIN fichas_caracterizacion fc ON fi.ficha_caracterizacion_id = fc.id
+        WHERE fi.id = %s
+        """,
+        (ficha_id,),
+    )
+
+
+def save_ficha_indicador(data, ficha_id=None):
+    _ensure_ficha_indicadores_table()
+    params = (
+        data.get("ficha_caracterizacion_id"),
+        data.get("proceso"),
+        data.get("producto"),
+        data.get("nombre_indicador"),
+        data.get("tipo_indicador"),
+        data.get("justificacion"),
+        data.get("responsable"),
+        data.get("metodo_calculo"),
+        data.get("sentido_esperado"),
+        data.get("unidad_medida"),
+        data.get("frecuencia"),
+        data.get("fuente_datos"),
+        data.get("valor_enero"),
+        data.get("valor_febrero"),
+        data.get("valor_marzo"),
+        data.get("valor_abril"),
+        data.get("valor_mayo"),
+        data.get("valor_junio"),
+        data.get("elaborado_por"),
+        data.get("revisado_por"),
+        data.get("aprobado_por"),
+    )
+    if ficha_id:
+        execute(
+            """
+            UPDATE fichas_indicadores
+            SET ficha_caracterizacion_id=%s, proceso=%s, producto=%s, nombre_indicador=%s,
+                tipo_indicador=%s, justificacion=%s, responsable=%s, metodo_calculo=%s,
+                sentido_esperado=%s, unidad_medida=%s, frecuencia=%s, fuente_datos=%s,
+                valor_enero=%s, valor_febrero=%s, valor_marzo=%s, valor_abril=%s,
+                valor_mayo=%s, valor_junio=%s, elaborado_por=%s, revisado_por=%s,
+                aprobado_por=%s, updated_at=CURRENT_TIMESTAMP
+            WHERE id=%s
+            """,
+            (*params, ficha_id),
+        )
+        return ficha_id
+    return execute(
+        """
+        INSERT INTO fichas_indicadores (
+            ficha_caracterizacion_id, proceso, producto, nombre_indicador,
+            tipo_indicador, justificacion, responsable, metodo_calculo,
+            sentido_esperado, unidad_medida, frecuencia, fuente_datos,
+            valor_enero, valor_febrero, valor_marzo, valor_abril,
+            valor_mayo, valor_junio, elaborado_por, revisado_por, aprobado_por
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        params,
+    )
+
+
+def delete_ficha_indicador(ficha_id):
+    execute("DELETE FROM fichas_indicadores WHERE id = %s", (ficha_id,))
+
+
 def get_resumen_ia(gestion_id, periodo_id):
     row = fetch_one(
         "SELECT resumen FROM resumenes_ia WHERE gestion_id = %s AND periodo_id = %s",

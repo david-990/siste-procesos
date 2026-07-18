@@ -286,3 +286,38 @@ def test_ficha_caracterizacion_edit_page(monkeypatch):
     assert "Editar ficha de caracterización" in html
     assert "GC-01" in html
     assert "Ver archivo" in html
+
+
+def test_ficha_indicadores_list_page(monkeypatch):
+    app = create_app()
+    monkeypatch.setattr(repo, "get_fichas_indicadores", lambda: [])
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = 1
+            session["_csrf_token"] = "test-token"
+
+        response = client.get("/fichas-indicadores")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Ficha de Indicadores" in html
+    assert "Agregar ficha" in html
+
+
+def test_ficha_indicadores_new_page_renders_form(monkeypatch):
+    app = create_app()
+    monkeypatch.setattr(repo, "get_fichas_caracterizacion", lambda: [{"id": 1, "codigo_proceso": "M1", "nombre_proceso": "Interoperabilidad"}])
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = 1
+            session["_csrf_token"] = "test-token"
+
+        response = client.get("/fichas-indicadores/nueva")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Agregar ficha de indicadores" in html
+    assert "Ficha de caracterización" in html
+    assert "Interoperabilidad" in html

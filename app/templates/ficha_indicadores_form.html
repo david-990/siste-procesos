@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% from "components.html" import page_header, button %}
+
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block content %}
+  {{ page_header(form_title, 'Completa la ficha de indicadores y asigna la ficha de caracterización a la que pertenece.') }}
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Ficha de caracterización</span>
+          <select name="ficha_caracterizacion_id" required class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">
+            <option value="">Selecciona una ficha de caracterización</option>
+            {% for caracterizacion in caracterizaciones %}
+              <option value="{{ caracterizacion.id }}" {% if ficha and ficha.ficha_caracterizacion_id == caracterizacion.id %}selected{% endif %}>{{ caracterizacion.codigo_proceso }} — {{ caracterizacion.nombre_proceso }}</option>
+            {% endfor %}
+          </select>
+          <p class="mt-2 text-xs text-slate-500">El proceso se obtiene automáticamente de la ficha de caracterización seleccionada.</p>
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Producto</span>
+          <input name="producto" required value="{{ ficha.producto if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre del indicador</span>
+          <input name="nombre_indicador" required value="{{ ficha.nombre_indicador if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo de indicador</span>
+          <input name="tipo_indicador" required value="{{ ficha.tipo_indicador if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Responsable</span>
+          <input name="responsable" required value="{{ ficha.responsable if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Elaborado por</span>
+          <input name="elaborado_por" value="{{ ficha.elaborado_por if ficha else 'GRUPO 8' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Revisado por</span>
+          <input name="revisado_por" placeholder="Opcional" value="{{ ficha.revisado_por if ficha else '' }}" class="w-full rounded-lg border border-dashed border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Aprobado por</span>
+          <input name="aprobado_por" placeholder="Opcional" value="{{ ficha.aprobado_por if ficha else '' }}" class="w-full rounded-lg border border-dashed border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm" />
+        </label>
+      </div>
+
+      <div class="overflow-hidden rounded-xl border border-slate-200">
+        <table class="min-w-full border-collapse text-sm">
+          <tbody>
+            <tr class="border-b border-slate-200 bg-slate-50">
+              <th class="w-1/4 border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Justificación</th>
+              <td class="px-3 py-3">
+                <textarea name="justificacion" required rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.justificacion if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Método de cálculo</th>
+              <td class="px-3 py-3">
+                <textarea name="metodo_calculo" required rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.metodo_calculo if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200 bg-slate-50">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Sentido esperado</th>
+              <td class="px-3 py-3">
+                <input name="sentido_esperado" required value="{{ ficha.sentido_esperado if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Unidad de medida</th>
+              <td class="px-3 py-3">
+                <input name="unidad_medida" required value="{{ ficha.unidad_medida if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200 bg-slate-50">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Frecuencia</th>
+              <td class="px-3 py-3">
+                <input name="frecuencia" required value="{{ ficha.frecuencia if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Fuente de datos</th>
+              <td class="px-3 py-3">
+                <textarea name="fuente_datos" required rows="3" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100">{{ ficha.fuente_datos if ficha else '' }}</textarea>
+              </td>
+            </tr>
+            <tr class="border-b border-slate-200 bg-slate-50">
+              <th class="border-r border-slate-200 px-3 py-3 text-left font-semibold text-slate-700">Logros esperados</th>
+              <td class="px-3 py-3 text-slate-700">
+                <div class="grid gap-4 lg:grid-cols-3">
+                  <label class="block">
+                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Enero</span>
+                    <input name="valor_enero" value="{{ ficha.valor_enero if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+                  </label>
+                  <label class="block">
+                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Febrero</span>
+                    <input name="valor_febrero" value="{{ ficha.valor_febrero if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+                  </label>
+                  <label class="block">
+                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Marzo</span>
+                    <input name="valor_marzo" value="{{ ficha.valor_marzo if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+                  </label>
+                  <label class="block">
+                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Abril</span>
+                    <input name="valor_abril" value="{{ ficha.valor_abril if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+                  </label>
+                  <label class="block">
+                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Mayo</span>
+                    <input name="valor_mayo" value="{{ ficha.valor_mayo if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+                  </label>
+                  <label class="block">
+                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Junio</span>
+                    <input name="valor_junio" value="{{ ficha.valor_junio if ficha else '' }}" class="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-600 focus:ring-4 focus:ring-brand-100" />
+                  </label>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <a href="{{ url_for('main.fichas_indicadores') }}" class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Cancelar</a>
+        {{ button(submit_label) }}
+      </div>
+    </form>
+  </div>
+{% endblock %}

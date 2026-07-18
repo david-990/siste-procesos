@@ -6,10 +6,10 @@
 {% block content %}
   {{ page_header('Ficha de Caracterización', 'Visualiza los detalles completos de la ficha con una estructura de tabla clara, similar al formato institucional.') }}
 
-  <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+  <div class="overflow-x-auto rounded-3xl border border-slate-200 bg-slate-50 shadow-xl ring-1 ring-slate-200/60">
     <table class="min-w-full border-collapse text-sm">
       <tbody>
-        <tr class="bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <tr class="bg-brand-700 text-white text-left text-xs font-semibold uppercase tracking-wide">
           <td class="border border-slate-300 px-4 py-3">Nombre del proceso</td>
           <td class="border border-slate-300 px-4 py-3">{{ ficha.nombre_proceso or '-' }}</td>
           <td class="border border-slate-300 px-4 py-3">Tipo de proceso</td>

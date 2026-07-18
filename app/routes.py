@@ -713,6 +713,163 @@ def ficha_caracterizacion_eliminar(ficha_id):
     return redirect(url_for("main.fichas_caracterizacion"))
 
 
+@bp.route("/fichas-indicadores")
+def fichas_indicadores():
+    fichas = repo.get_fichas_indicadores()
+    return render_template("ficha_indicadores_list.html", fichas=fichas)
+
+
+@bp.route("/fichas-indicadores/nueva", methods=["GET", "POST"])
+def ficha_indicadores_nueva():
+    caracterizaciones = repo.get_fichas_caracterizacion()
+    if request.method == "POST":
+        errors = []
+        if not request.form.get("ficha_caracterizacion_id"):
+            errors.append("La ficha de caracterización es obligatoria.")
+        if not request.form.get("producto", "").strip():
+            errors.append("El producto es requerido.")
+        if not request.form.get("nombre_indicador", "").strip():
+            errors.append("El nombre del indicador es requerido.")
+        if not request.form.get("tipo_indicador", "").strip():
+            errors.append("El tipo de indicador es requerido.")
+        if not request.form.get("responsable", "").strip():
+            errors.append("El responsable es requerido.")
+        if not request.form.get("sentido_esperado", "").strip():
+            errors.append("El sentido esperado es requerido.")
+        if not request.form.get("unidad_medida", "").strip():
+            errors.append("La unidad de medida es requerida.")
+        if not request.form.get("frecuencia", "").strip():
+            errors.append("La frecuencia es requerida.")
+        if not request.form.get("fuente_datos", "").strip():
+            errors.append("La fuente de datos es requerida.")
+
+        if errors:
+            for err in errors:
+                flash(err)
+        else:
+            ficha_caracterizacion = repo.get_ficha_caracterizacion(_safe_int(request.form.get("ficha_caracterizacion_id")))
+            data = {
+                "ficha_caracterizacion_id": _safe_int(request.form.get("ficha_caracterizacion_id")),
+                "proceso": ficha_caracterizacion["nombre_proceso"] if ficha_caracterizacion else "",
+                "producto": request.form.get("producto", "").strip(),
+                "nombre_indicador": request.form.get("nombre_indicador", "").strip(),
+                "tipo_indicador": request.form.get("tipo_indicador", "").strip(),
+                "justificacion": request.form.get("justificacion", "").strip(),
+                "responsable": request.form.get("responsable", "").strip(),
+                "metodo_calculo": request.form.get("metodo_calculo", "").strip(),
+                "sentido_esperado": request.form.get("sentido_esperado", "").strip(),
+                "unidad_medida": request.form.get("unidad_medida", "").strip(),
+                "frecuencia": request.form.get("frecuencia", "").strip(),
+                "fuente_datos": request.form.get("fuente_datos", "").strip(),
+                "valor_enero": request.form.get("valor_enero", "").strip() or None,
+                "valor_febrero": request.form.get("valor_febrero", "").strip() or None,
+                "valor_marzo": request.form.get("valor_marzo", "").strip() or None,
+                "valor_abril": request.form.get("valor_abril", "").strip() or None,
+                "valor_mayo": request.form.get("valor_mayo", "").strip() or None,
+                "valor_junio": request.form.get("valor_junio", "").strip() or None,
+                "elaborado_por": request.form.get("elaborado_por", "").strip() or "GRUPO 8",
+                "revisado_por": request.form.get("revisado_por", "").strip() or None,
+                "aprobado_por": request.form.get("aprobado_por", "").strip() or None,
+            }
+            repo.save_ficha_indicador(data)
+            flash("Ficha de indicadores registrada correctamente.")
+            return redirect(url_for("main.fichas_indicadores"))
+
+    return render_template(
+        "ficha_indicadores_form.html",
+        ficha=None,
+        caracterizaciones=caracterizaciones,
+        form_title="Agregar ficha de indicadores",
+        submit_label="Guardar ficha",
+    )
+
+
+@bp.route("/fichas-indicadores/<int:ficha_id>")
+def ficha_indicadores_ver(ficha_id):
+    ficha = repo.get_ficha_indicador(ficha_id)
+    if not ficha:
+        abort(404)
+    return render_template("ficha_indicadores_view.html", ficha=ficha)
+
+
+@bp.route("/fichas-indicadores/<int:ficha_id>/editar", methods=["GET", "POST"])
+def ficha_indicadores_editar(ficha_id):
+    ficha = repo.get_ficha_indicador(ficha_id)
+    if not ficha:
+        abort(404)
+    caracterizaciones = repo.get_fichas_caracterizacion()
+    if request.method == "POST":
+        errors = []
+        if not request.form.get("ficha_caracterizacion_id"):
+            errors.append("La ficha de caracterización es obligatoria.")
+        if not request.form.get("producto", "").strip():
+            errors.append("El producto es requerido.")
+        if not request.form.get("nombre_indicador", "").strip():
+            errors.append("El nombre del indicador es requerido.")
+        if not request.form.get("tipo_indicador", "").strip():
+            errors.append("El tipo de indicador es requerido.")
+        if not request.form.get("responsable", "").strip():
+            errors.append("El responsable es requerido.")
+        if not request.form.get("sentido_esperado", "").strip():
+            errors.append("El sentido esperado es requerido.")
+        if not request.form.get("unidad_medida", "").strip():
+            errors.append("La unidad de medida es requerida.")
+        if not request.form.get("frecuencia", "").strip():
+            errors.append("La frecuencia es requerida.")
+        if not request.form.get("fuente_datos", "").strip():
+            errors.append("La fuente de datos es requerida.")
+
+        if errors:
+            for err in errors:
+                flash(err)
+        else:
+            ficha_caracterizacion = repo.get_ficha_caracterizacion(_safe_int(request.form.get("ficha_caracterizacion_id")))
+            data = {
+                "ficha_caracterizacion_id": _safe_int(request.form.get("ficha_caracterizacion_id")),
+                "proceso": ficha_caracterizacion["nombre_proceso"] if ficha_caracterizacion else "",
+                "producto": request.form.get("producto", "").strip(),
+                "nombre_indicador": request.form.get("nombre_indicador", "").strip(),
+                "tipo_indicador": request.form.get("tipo_indicador", "").strip(),
+                "justificacion": request.form.get("justificacion", "").strip(),
+                "responsable": request.form.get("responsable", "").strip(),
+                "metodo_calculo": request.form.get("metodo_calculo", "").strip(),
+                "sentido_esperado": request.form.get("sentido_esperado", "").strip(),
+                "unidad_medida": request.form.get("unidad_medida", "").strip(),
+                "frecuencia": request.form.get("frecuencia", "").strip(),
+                "fuente_datos": request.form.get("fuente_datos", "").strip(),
+                "valor_enero": request.form.get("valor_enero", "").strip() or None,
+                "valor_febrero": request.form.get("valor_febrero", "").strip() or None,
+                "valor_marzo": request.form.get("valor_marzo", "").strip() or None,
+                "valor_abril": request.form.get("valor_abril", "").strip() or None,
+                "valor_mayo": request.form.get("valor_mayo", "").strip() or None,
+                "valor_junio": request.form.get("valor_junio", "").strip() or None,
+                "elaborado_por": request.form.get("elaborado_por", "").strip() or "GRUPO 8",
+                "revisado_por": request.form.get("revisado_por", "").strip() or None,
+                "aprobado_por": request.form.get("aprobado_por", "").strip() or None,
+            }
+            repo.save_ficha_indicador(data, ficha_id=ficha_id)
+            flash("Ficha de indicadores actualizada correctamente.")
+            return redirect(url_for("main.fichas_indicadores"))
+
+    return render_template(
+        "ficha_indicadores_form.html",
+        ficha=ficha,
+        caracterizaciones=caracterizaciones,
+        form_title="Editar ficha de indicadores",
+        submit_label="Actualizar ficha",
+    )
+
+
+@bp.post("/fichas-indicadores/<int:ficha_id>/eliminar")
+def ficha_indicadores_eliminar(ficha_id):
+    ficha = repo.get_ficha_indicador(ficha_id)
+    if not ficha:
+        abort(404)
+    repo.delete_ficha_indicador(ficha_id)
+    flash("Ficha de indicadores eliminada.")
+    return redirect(url_for("main.fichas_indicadores"))
+
+
 @bp.route("/mapa", methods=["GET", "POST"])
 def mapa():
     mapa_registro = repo.get_mapa()
