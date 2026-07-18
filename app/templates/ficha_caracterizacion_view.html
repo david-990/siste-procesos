@@ -47,7 +47,7 @@
           <td colspan="2" class="border border-slate-300 px-4 py-3 align-top">
             {% if ficha.actividades_proceso_imagen %}
               <div class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                <img src="{{ url_for('static', filename='uploads/' ~ ficha.actividades_proceso_imagen) }}" alt="Diagrama de actividades" class="w-full rounded-xl object-contain" />
+                <img src="{{ ficha_signed_url }}" alt="Diagrama de actividades" class="w-full rounded-xl object-contain" />
               </div>
             {% else %}
               <p class="text-sm text-slate-500">No se ha cargado imagen para el diagrama de actividades.</p>

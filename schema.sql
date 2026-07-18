@@ -560,4 +560,70 @@ CREATE TABLE IF NOT EXISTS `indicadores_procesos` (
     CONSTRAINT `fk_ind_proc_proceso` FOREIGN KEY (`proceso_id`) REFERENCES `procesos` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Volcando estructura para tabla railway.fichas_caracterizacion
+CREATE TABLE IF NOT EXISTS `fichas_caracterizacion` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `codigo_proceso` varchar(50) NOT NULL,
+  `nombre_proceso` varchar(255) NOT NULL,
+  `tipo_proceso` varchar(100) NOT NULL,
+  `dueno_proceso` varchar(255) NOT NULL,
+  `objetivo_proceso` text NOT NULL,
+  `objetivo_estrategico` text NOT NULL,
+  `proveedor_entrada` text NOT NULL,
+  `elementos_entrada` text NOT NULL,
+  `producto` text NOT NULL,
+  `receptor_producto` text NOT NULL,
+  `actividades_proceso_imagen` varchar(255) DEFAULT NULL,
+  `riesgos` text,
+  `registros` text,
+  `elaborado_por` varchar(150) NOT NULL,
+  `revisado_por` varchar(150) DEFAULT NULL,
+  `aprobado_por` varchar(150) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Volcando estructura para tabla railway.fichas_indicadores
+CREATE TABLE IF NOT EXISTS `fichas_indicadores` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `ficha_caracterizacion_id` int DEFAULT NULL,
+  `proceso` varchar(255) NOT NULL,
+  `producto` varchar(255) NOT NULL,
+  `nombre_indicador` varchar(255) NOT NULL,
+  `tipo_indicador` varchar(100) NOT NULL,
+  `justificacion` text NOT NULL,
+  `responsable` varchar(255) NOT NULL,
+  `metodo_calculo` text NOT NULL,
+  `sentido_esperado` varchar(100) NOT NULL,
+  `unidad_medida` varchar(100) NOT NULL,
+  `frecuencia` varchar(100) NOT NULL,
+  `fuente_datos` varchar(255) NOT NULL,
+  `valor_enero` varchar(50) DEFAULT NULL,
+  `valor_febrero` varchar(50) DEFAULT NULL,
+  `valor_marzo` varchar(50) DEFAULT NULL,
+  `valor_abril` varchar(50) DEFAULT NULL,
+  `valor_mayo` varchar(50) DEFAULT NULL,
+  `valor_junio` varchar(50) DEFAULT NULL,
+  `elaborado_por` varchar(150) DEFAULT NULL,
+  `revisado_por` varchar(150) DEFAULT NULL,
+  `aprobado_por` varchar(150) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Volcando estructura para tabla railway.archivos_pendientes_eliminar
+CREATE TABLE IF NOT EXISTS `archivos_pendientes_eliminar` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ruta_archivo` VARCHAR(1024) NOT NULL,
+  `intentos` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  `ultimo_error` TEXT NULL,
+  `proximo_intento_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `procesando_at` TIMESTAMP NULL,
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_proximo_intento` (`proximo_intento_at`, `procesando_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
    SET FOREIGN_KEY_CHECKS=1;

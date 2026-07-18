@@ -36,7 +36,7 @@
                 <td class="px-3 py-3 text-slate-700">{{ ficha.elaborado_por or '-' }}</td>
                 <td class="px-3 py-3 text-slate-700">
                   {% if ficha.actividades_proceso_imagen %}
-                    <a href="{{ url_for('static', filename='uploads/' ~ ficha.actividades_proceso_imagen) }}" target="_blank" class="text-brand-700 hover:underline">Ver imagen</a>
+                    <a href="{{ ficha.imagen_signed_url }}" target="_blank" class="text-brand-700 hover:underline">Ver imagen</a>
                   {% else %}
                     <span class="text-slate-400">Sin imagen</span>
                   {% endif %}

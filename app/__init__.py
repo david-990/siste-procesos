@@ -38,7 +38,21 @@ def create_app():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
                 """
             )
+            execute(
+                """
+                CREATE TABLE IF NOT EXISTS archivos_pendientes_eliminar (
+                    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    ruta_archivo VARCHAR(1024) NOT NULL,
+                    intentos TINYINT UNSIGNED NOT NULL DEFAULT 0,
+                    ultimo_error TEXT NULL,
+                    proximo_intento_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    procesando_at TIMESTAMP NULL,
+                    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_proximo_intento (proximo_intento_at, procesando_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+                """
+            )
         except Exception as e:
-            app.logger.error(f"Error al inicializar tabla resumenes_ia: {e}")
+            app.logger.error(f"Error al inicializar tablas: {e}")
 
     return app

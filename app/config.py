@@ -15,3 +15,13 @@ class Config:
         "database": os.getenv("DB_NAME", os.getenv("MYSQLDATABASE", "six_sigma")),
         "port": int(os.getenv("DB_PORT", os.getenv("MYSQLPORT", 3306))),
     }
+
+    # S3 / Backblaze B2
+    S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID")
+    S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY")
+    S3_BUCKET = os.getenv("S3_BUCKET", "six-sigma-images")
+    S3_ENDPOINT = os.getenv("S3_ENDPOINT")
+    S3_REGION = os.getenv("S3_REGION", "us-east-005")
+    S3_SIGNED_URL_EXPIRES_SECONDS = int(
+        os.getenv("S3_SIGNED_URL_EXPIRES_SECONDS", "900")
+    )

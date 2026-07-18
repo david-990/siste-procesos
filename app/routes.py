@@ -8,12 +8,12 @@ from time import monotonic
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, session, url_for
 import mysql.connector
 from werkzeug.security import check_password_hash, generate_password_hash
-from werkzeug.utils import secure_filename
 
 from app import repositories as repo
 from app import services
 from app import reporte_ceplan_service
 from app import ai_service
+from app import storage
 
 
 bp = Blueprint("main", __name__)
@@ -607,6 +607,9 @@ def proceso_eliminar(proceso_id):
 @bp.route("/ficha-caracterizacion")
 def fichas_caracterizacion():
     fichas = repo.get_fichas_caracterizacion()
+    for f in fichas:
+        if f.get("actividades_proceso_imagen"):
+            f["imagen_signed_url"] = storage.get_signed_url(f["actividades_proceso_imagen"])
     return render_template("ficha_caracterizacion_list.html", fichas=fichas)
 
 
@@ -634,20 +637,17 @@ def _save_ficha_form(ficha=None):
             flash("Tipo de archivo no permitido. Solo se aceptan imágenes PNG, JPG, GIF o WEBP.")
             return None
 
-        upload_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
-        os.makedirs(upload_folder, exist_ok=True)
-        safe_name = secure_filename(uploaded_file.filename)
-        if not safe_name:
-            safe_name = f"ficha_{int(time.time())}{ext}"
-        upload_filename = f"ficha_{int(time.time())}_{safe_name}"
-        uploaded_file.save(os.path.join(upload_folder, upload_filename))
-        if ficha and ficha.get("actividades_proceso_imagen"):
-            old_path = os.path.join(upload_folder, ficha["actividades_proceso_imagen"])
-            if os.path.exists(old_path):
-                try:
-                    os.remove(old_path)
-                except Exception:
-                    pass
+        old_key = ficha.get("actividades_proceso_imagen") if ficha else None
+
+        # 1. SUBIR archivo nuevo a S3 (fuera de transacción)
+        new_key = storage.upload_file(uploaded_file, "fichas")
+        if not new_key:
+            flash("Error al subir la imagen al almacenamiento.")
+            return None
+        upload_filename = new_key
+
+        # La BD se actualizará más abajo con el nuevo_key en data[actividades_proceso_imagen]
+        # Si la BD falla, se limpia el archivo nuevo en el except del caller
 
     data = {
         "codigo_proceso": request.form.get("codigo_proceso", "").strip(),
@@ -667,10 +667,18 @@ def _save_ficha_form(ficha=None):
         "revisado_por": _optional_value("revisado_por"),
         "aprobado_por": _optional_value("aprobado_por"),
     }
+
     if ficha:
+        old_key = ficha.get("actividades_proceso_imagen")
         repo.save_ficha_caracterizacion(data, ficha_id=ficha["id"])
     else:
+        old_key = None
         repo.save_ficha_caracterizacion(data)
+
+    # 3. ENCOLAR archivo anterior para borrado asíncrono (solo si se subió uno nuevo)
+    if old_key and uploaded_file and uploaded_file.filename:
+        repo.enqueue_pendiente(old_key)
+
     return data
 
 
@@ -680,7 +688,13 @@ def ficha_caracterizacion_nueva():
         if _save_ficha_form() is not None:
             flash("Ficha de caracterización registrada correctamente.")
             return redirect(url_for("main.fichas_caracterizacion"))
-    return render_template("ficha_caracterizacion_form.html", ficha=None, form_title="Agregar ficha de caracterización", submit_label="Guardar ficha")
+    return render_template(
+        "ficha_caracterizacion_form.html",
+        ficha=None,
+        ficha_signed_url=None,
+        form_title="Agregar ficha de caracterización",
+        submit_label="Guardar ficha",
+    )
 
 
 @bp.route("/ficha-caracterizacion/<int:ficha_id>")
@@ -688,7 +702,12 @@ def ficha_caracterizacion_ver(ficha_id):
     ficha = repo.get_ficha_caracterizacion(ficha_id)
     if not ficha:
         abort(404)
-    return render_template("ficha_caracterizacion_view.html", ficha=ficha)
+    ficha_signed_url = (
+        storage.get_signed_url(ficha["actividades_proceso_imagen"])
+        if ficha.get("actividades_proceso_imagen")
+        else None
+    )
+    return render_template("ficha_caracterizacion_view.html", ficha=ficha, ficha_signed_url=ficha_signed_url)
 
 
 @bp.route("/ficha-caracterizacion/<int:ficha_id>/editar", methods=["GET", "POST"])
@@ -700,7 +719,46 @@ def ficha_caracterizacion_editar(ficha_id):
         if _save_ficha_form(ficha) is not None:
             flash("Ficha de caracterización actualizada correctamente.")
             return redirect(url_for("main.fichas_caracterizacion"))
-    return render_template("ficha_caracterizacion_form.html", ficha=ficha, form_title="Editar ficha de caracterización", submit_label="Actualizar ficha")
+    ficha_signed_url = (
+        storage.get_signed_url(ficha["actividades_proceso_imagen"])
+        if ficha.get("actividades_proceso_imagen")
+        else None
+    )
+    return render_template(
+        "ficha_caracterizacion_form.html",
+        ficha=ficha,
+        ficha_signed_url=ficha_signed_url,
+        form_title="Editar ficha de caracterización",
+        submit_label="Actualizar ficha",
+    )
+
+
+@bp.post("/api/limpiar-pendientes")
+def limpiar_pendientes():
+    """
+    Procesador de cola de eliminación pendiente.
+    Reclama trabajos, intenta borrar de S3, y reintenta con backoff si falla.
+    """
+    procesados = 0
+    errores = 0
+
+    pendientes = repo.claim_pendientes(limit=20)
+    for p in pendientes:
+        repo.mark_pendiente_procesando(p["id"])
+        try:
+            storage.delete_file(p["ruta_archivo"])
+            repo.resolve_pendiente(p["id"])
+            procesados += 1
+        except Exception as e:
+            repo.fail_pendiente(p["id"], str(e))
+            errores += 1
+
+    if procesados or errores:
+        flash(f"Procesados: {procesados} eliminados, {errores} con error (reintentarán después).")
+    else:
+        flash("No hay archivos pendientes de eliminación.")
+
+    return redirect(request.referrer or url_for("main.panel"))
 
 
 @bp.post("/ficha-caracterizacion/<int:ficha_id>/eliminar")
@@ -708,7 +766,12 @@ def ficha_caracterizacion_eliminar(ficha_id):
     ficha = repo.get_ficha_caracterizacion(ficha_id)
     if not ficha:
         abort(404)
+    old_key = ficha.get("actividades_proceso_imagen")
+    # 1. ELIMINAR de BD primero
     repo.delete_ficha_caracterizacion(ficha_id)
+    # 2. ENCOLAR archivo para borrado asíncrono
+    if old_key:
+        repo.enqueue_pendiente(old_key)
     flash("Ficha de caracterización eliminada.")
     return redirect(url_for("main.fichas_caracterizacion"))
 
@@ -886,30 +949,32 @@ def mapa():
             flash(f"Tipo de archivo no permitido. Tipos permitidos: {', '.join(allowed_extensions)}")
             return redirect(url_for("main.mapa"))
 
-        # Crear directorio si no existe
-        upload_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
-        os.makedirs(upload_folder, exist_ok=True)
+        # 1. SUBIR archivo nuevo a S3 (fuera de transacción)
+        new_key = storage.upload_file(file, "mapas")
+        if not new_key:
+            flash("Error al subir la imagen al almacenamiento.")
+            return redirect(url_for("main.mapa"))
 
-        # Eliminar archivo físico anterior si existe
-        if mapa_registro:
-            old_filepath = os.path.join(upload_folder, mapa_registro["imagen"])
-            if os.path.exists(old_filepath):
-                try:
-                    os.remove(old_filepath)
-                except Exception as e:
-                    import logging
-                    logging.exception("Error al eliminar la imagen de mapa anterior: %s", e)
+        old_key = mapa_registro["imagen"] if mapa_registro else None
 
-        # Guardar nueva imagen con nombre único
-        new_filename = f"mapa_{int(time.time())}{ext}"
-        new_filepath = os.path.join(upload_folder, new_filename)
-        file.save(new_filepath)
+        # 2. GUARDAR en BD primero (la imagen nueva ya está en S3)
+        try:
+            repo.save_mapa(new_key)
+        except Exception:
+            # Si la BD falla, limpiar el archivo recién subido
+            storage.delete_file(new_key)
+            flash("Error al guardar en la base de datos.")
+            return redirect(url_for("main.mapa"))
 
-        repo.save_mapa(new_filename)
+        # 3. ENCOLAR archivo anterior para borrado asíncrono (si existe)
+        if old_key:
+            repo.enqueue_pendiente(old_key)
+
         flash("Imagen del mapa actualizada correctamente.")
         return redirect(url_for("main.mapa"))
 
-    return render_template("mapa.html", mapa=mapa_registro)
+    mapa_signed_url = storage.get_signed_url(mapa_registro["imagen"]) if mapa_registro else None
+    return render_template("mapa.html", mapa=mapa_registro, mapa_signed_url=mapa_signed_url)
 
 
 @bp.route("/acciones", methods=["GET", "POST"])

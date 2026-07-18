@@ -759,6 +759,91 @@ def delete_ficha_caracterizacion(ficha_id):
     execute("DELETE FROM fichas_caracterizacion WHERE id = %s", (ficha_id,))
 
 
+def _ensure_pendientes_table():
+    """Crea la tabla archivos_pendientes_eliminar si no existe."""
+    execute(
+        """
+        CREATE TABLE IF NOT EXISTS archivos_pendientes_eliminar (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            ruta_archivo VARCHAR(1024) NOT NULL,
+            intentos TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            ultimo_error TEXT NULL,
+            proximo_intento_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            procesando_at TIMESTAMP NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_proximo_intento (proximo_intento_at, procesando_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+        """
+    )
+
+
+def enqueue_pendiente(ruta_archivo):
+    """Encola una ruta de archivo para eliminación asíncrona."""
+    if not ruta_archivo:
+        return
+    _ensure_pendientes_table()
+    execute(
+        """
+        INSERT IGNORE INTO archivos_pendientes_eliminar (ruta_archivo)
+        VALUES (%s)
+        """,
+        (ruta_archivo,),
+    )
+
+
+def claim_pendientes(limit=20):
+    """
+    Reclama hasta `limit` trabajos pendientes que estén listos para procesar.
+    Retorna una lista de dicts con id, ruta_archivo, intentos.
+    """
+    _ensure_pendientes_table()
+    return fetch_all(
+        """
+        SELECT id, ruta_archivo, intentos
+        FROM archivos_pendientes_eliminar
+        WHERE proximo_intento_at <= NOW()
+          AND (procesando_at IS NULL OR procesando_at < NOW() - INTERVAL 10 MINUTE)
+        ORDER BY proximo_intento_at, id
+        LIMIT %s
+        """,
+        (limit,),
+    )
+
+
+def mark_pendiente_procesando(pendiente_id):
+    """Marca un pendiente como 'en proceso'."""
+    execute(
+        "UPDATE archivos_pendientes_eliminar SET procesando_at = NOW() WHERE id = %s",
+        (pendiente_id,),
+    )
+
+
+def resolve_pendiente(pendiente_id):
+    """Elimina un pendiente de la cola (borrado exitoso)."""
+    execute(
+        "DELETE FROM archivos_pendientes_eliminar WHERE id = %s",
+        (pendiente_id,),
+    )
+
+
+def fail_pendiente(pendiente_id, error_msg):
+    """
+    Incrementa intentos, guarda el error, y programa el próximo reintento
+    con backoff exponencial: min(60 × 2^intentos, 3600) segundos.
+    """
+    execute(
+        """
+        UPDATE archivos_pendientes_eliminar
+        SET intentos = intentos + 1,
+            ultimo_error = %s,
+            proximo_intento_at = DATE_ADD(NOW(), INTERVAL LEAST(60 * POW(2, intentos), 3600) SECOND),
+            procesando_at = NULL
+        WHERE id = %s
+        """,
+        (error_msg, pendiente_id),
+    )
+
+
 def _ensure_ficha_indicadores_table():
     execute(
         """

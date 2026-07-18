@@ -75,7 +75,7 @@
                 {% if mapa %}
                 <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
                     <div class="flex justify-center bg-slate-50 rounded-xl p-4">
-                        <img src="{{ url_for('static', filename='uploads/' ~ mapa.imagen) }}" alt="Mapa de Procesos" class="w-full h-auto max-h-[75vh] object-contain rounded-lg shadow-sm">
+                        <img src="{{ mapa_signed_url }}" alt="Mapa de Procesos" class="w-full h-auto max-h-[75vh] object-contain rounded-lg shadow-sm">
                     </div>
                 </div>
                 {% else %}

@@ -103,7 +103,7 @@
                 </div>
                 {% if ficha and ficha.actividades_proceso_imagen %}
                   <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-                    Imagen actual: <a href="{{ url_for('static', filename='uploads/' ~ ficha.actividades_proceso_imagen) }}" target="_blank" class="font-semibold text-brand-700 hover:underline">Ver archivo</a>
+                    Imagen actual: <a href="{{ ficha_signed_url }}" target="_blank" class="font-semibold text-brand-700 hover:underline">Ver archivo</a>
                   </div>
                 {% endif %}
               </td>
