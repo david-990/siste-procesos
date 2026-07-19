@@ -111,7 +111,7 @@
           </div>
 
           {# Navegación #}
-          <nav class="flex-1 min-h-0 overflow-y-auto space-y-0.5 pr-1">
+          <nav id="sidebar-nav" class="flex-1 min-h-0 overflow-y-auto space-y-0.5 pr-1">
             {% set sections = [ ("Monitoreo", [ ("panel", "Panel", "panel"),
             ("resumen", "Resumen", "resumen"), ("avances", "Avances",
             "avances"), ("avance_tipo1", "Avance Tipo 1", "mapa"), ("mapa",
@@ -121,8 +121,7 @@
             "Indicadores", "indicadores"), ("vinculacion", "Vincular Ind.",
             "acciones"), ("lineas_base", "Línea Base", "lineas_base"),
             ("metas_anuales", "Meta Anual", "metas_anuales"), ("metas_valores",
-            "Metas y Valores", "metas_valores"), ("change_password", "Cambiar
-            clave", "settings"), ]), ] %} {% for section_label, items in
+            "Metas y Valores", "metas_valores"), ]), ] %} {% for section_label, items in
             sections %}
             <div class="{% if not loop.first %}mt-5{% endif %}">
               <div
@@ -148,25 +147,75 @@
             {% endfor %}
           </nav>
 
-          {# Footer del sidebar #} {% if current_user %}
-          <form
-            method="post"
-            action="{{ url_for('main.logout') }}"
-            onsubmit="sessionStorage.removeItem('procesosAiChatHistory')"
-            class="mt-4"
+          {# Footer del sidebar — perfil de usuario #} {% if current_user %}
+          <div
+            x-data="{ open: false }"
+            @click.outside="open = false"
+            class="relative mt-auto pt-4"
           >
             <button
-              class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              @click="open = !open"
+              class="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200"
             >
-              Salir
+              <span
+                class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-bold text-brand-700"
+              >
+                {{ (current_user.nombre or current_user.username)[0] | upper }}
+              </span>
+              <span class="flex-1 truncate text-left">
+                {{ current_user.nombre or current_user.username }}
+              </span>
+              <svg
+                class="h-4 w-4 shrink-0 text-slate-400 transition"
+                :class="{ 'rotate-180': open }"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
-          </form>
-          {% endif %}
-          <div
-            class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-xs text-slate-400"
-          >
-            v1.0 · Flask + MySQL
+
+            <div
+              x-show="open"
+              x-transition:enter="transition ease-out duration-150"
+              x-transition:enter-start="-translate-y-1 opacity-0"
+              x-transition:enter-end="translate-y-0 opacity-100"
+              x-transition:leave="transition ease-in duration-100"
+              x-transition:leave-start="translate-y-0 opacity-100"
+              x-transition:leave-end="-translate-y-1 opacity-0"
+              style="display: none"
+              class="absolute bottom-full left-0 right-0 mb-1 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+            >
+              <a
+                href="{{ url_for('main.change_password') }}"
+                @click="open = false"
+                class="flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+              >
+                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+                Cambiar clave
+              </a>
+              <form
+                method="post"
+                action="{{ url_for('main.logout') }}"
+                onsubmit="sessionStorage.removeItem('procesosAiChatHistory')"
+              >
+                <button
+                  type="submit"
+                  class="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                >
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                  </svg>
+                  Cerrar sesión
+                </button>
+              </form>
+            </div>
           </div>
+          {% endif %}
         </div>
       </aside>
 
@@ -264,6 +313,35 @@
             }
           });
       });
+      // Guardar scroll de la barra lateral
+      (function() {
+        const STORAGE_KEY = 'sidebarScrollPosition';
+        function saveSidebarScroll() {
+          const nav = document.getElementById('sidebar-nav');
+          if (nav) {
+            sessionStorage.setItem(STORAGE_KEY, nav.scrollTop);
+          }
+        }
+        // Guardar al hacer scroll
+        document.addEventListener('scroll', function(e) {
+          if (e.target && e.target.id === 'sidebar-nav') {
+            saveSidebarScroll();
+          }
+        }, true);
+        // Guardar justo antes de salir de la página
+        window.addEventListener('beforeunload', saveSidebarScroll);
+        // Restaurar al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+          const saved = sessionStorage.getItem(STORAGE_KEY);
+          if (saved !== null) {
+            const nav = document.getElementById('sidebar-nav');
+            if (nav) {
+              nav.scrollTop = parseInt(saved, 10);
+            }
+          }
+        });
+      })();
+
       function toggleSidebar() {
         const sidebar = document.getElementById("sidebar");
         const overlay = document.getElementById("sidebar-overlay");
