@@ -1520,3 +1520,8 @@ def api_ai_chat():
     response_text = ai_service.consultar_asistente_wizard(message, history, context_data, system_instruction_add)
     
     return {"response": response_text}
+
+
+@bp.route("/ficha-mejora")
+def ficha_mejora():
+    return render_template("ficha_mejora.html")

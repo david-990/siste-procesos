@@ -1,0 +1,1465 @@
+{% extends "base.html" %}
+
+{% block title %}Ficha de Mejora{% endblock %}
+
+{% block content %}
+<div x-data="{
+    // 1. Datos generales
+    proyecto: 'Interoperabilidad digital',
+    codigoProyecto: '',
+    procesoAsociado: 'Pruebas de interoperabilidad',
+    codigoProceso: 'M1.3.2',
+    responsableProceso: 'Pajuelo Mendoza David Erlix',
+    fechaSolicitud: '',
+    responsableProyecto: '',
+    fechaRequerida: '',
+
+    // 2. Especificación de la mejora
+    tipoMejora: 'Mejora', // 'Mejora', 'Rediseño'
+    importancia: 'Alta', // 'Alta', 'Media', 'Baja'
+    complejidad: 'Media', // 'Alta', 'Media', 'Baja'
+
+    // 3.3.1. Nivel de consecuencias (Selección de un único espacio / celda)
+    consecuenciaNivel: 'Moderado',
+    consecuenciaArea: 'Administración pública',
+
+    // 3.3.2. Probabilidad de ocurrencia (Selecciona uno del intervalo)
+    probabilidadNivel: 'Casi certero',
+
+    // 3.4.1. Evaluación de la tolerancia
+    tolerancia: 'Tolerante',
+
+    // 3.3.4. Elementos de confianza (Selección de una única celda de toda la tabla)
+    confianzaCriterio: 'Dato/información',
+    confianzaNivel: 'Alta',
+
+    // 3.4.3. Consecuencia residual
+    residualConsecuenciaNivel: 'Moderado',
+    residualConsecuenciaArea: 'Entorno social',
+
+    // 3.4.4. Probabilidad residual
+    residualProbabilidadNivel: 'Improbable',
+
+    // 3.4.2. Definir estrategia de tratamiento
+    estrategiaTratamiento: 'Fortalecer las pruebas de interoperabilidad para validar los servicios interoperables y asegurar su correcto funcionamiento entre los sistemas institucionales.',
+
+    // 3.5. Acciones para abordar la oportunidad
+    accion1: 'Ejecutar pruebas de interoperabilidad a los servicios interoperables para verificar su correcto funcionamiento.',
+    accion2: 'Registrar y revisar los resultados de las pruebas de interoperabilidad, identificando observaciones o fallas técnicas.',
+    accion3: 'Corregir las observaciones detectadas y validar nuevamente los servicios hasta cumplir con los criterios establecidos.',
+
+    // 3.6 & 3.7 Costo e Impacto
+    costoValor: 2,
+    impactoValor: 7,
+
+    get factibilidadValor() {
+        return this.costoValor * this.impactoValor;
+    },
+
+    get factibilidadNivel() {
+        const f = this.factibilidadValor;
+        if (f > 14) return 'Bajo';
+        if (f > 7) return 'Medio';
+        return 'Alto';
+    },
+
+    get factibilidadAccion() {
+        const f = this.factibilidadValor;
+        if (f > 14) return 'Analizar la oportunidad de mejora';
+        if (f > 7) return 'Ejecutar la acción a corto plazo';
+        return 'Ejecutar la acción inmediatamente';
+    },
+
+    // Helpers to calculate qualitative matrix intersection
+    isIntersection(prob, consec) {
+        return this.probabilidadNivel === prob && this.consecuenciaNivel === consec;
+    },
+
+    isResidualIntersection(prob, consec) {
+        return this.residualProbabilidadNivel === prob && this.residualConsecuenciaNivel === consec;
+    },
+
+    // Submit Action
+    submitForm() {
+        const payload = {
+            datosGenerales: {
+                proyecto: this.proyecto || null,
+                codigoProyecto: this.codigoProyecto || null,
+                procesoAsociado: this.procesoAsociado || null,
+                codigoProceso: this.codigoProceso || null,
+                responsableProceso: this.responsableProceso || null,
+                fechaSolicitud: this.fechaSolicitud || null,
+                responsableProyecto: this.responsableProyecto || null,
+                fechaRequerida: this.fechaRequerida || null
+            },
+            especificacionMejora: {
+                tipoMejora: this.tipoMejora,
+                importancia: this.importancia,
+                complejidad: this.complejidad
+            },
+            nivelConsecuencias: {
+                nivel: this.consecuenciaNivel,
+                area: this.consecuenciaArea
+            },
+            probabilidadOcurrencia: this.probabilidadNivel,
+            matrizCualitativa: {
+                probabilidad: this.probabilidadNivel,
+                consecuencia: this.consecuenciaNivel,
+                resultado: this.getMatrizValue()
+            },
+            elementosConfianza: {
+                criterioSeleccionado: this.confianzaCriterio,
+                nivelSeleccionado: this.confianzaNivel
+            },
+            evaluacionTolerancia: this.tolerancia,
+            residualConsecuencias: {
+                nivel: this.residualConsecuenciaNivel,
+                area: this.residualConsecuenciaArea
+            },
+            residualProbabilidad: this.residualProbabilidadNivel,
+            matrizResidual: {
+                probabilidad: this.residualProbabilidadNivel,
+                consecuencia: this.residualConsecuenciaNivel,
+                resultado: this.getResidualMatrizValue()
+            },
+            estrategiaTratamiento: this.estrategiaTratamiento,
+            accionesAbordar: [this.accion1, this.accion2, this.accion3],
+            costoValor: this.costoValor,
+            impactoValor: this.impactoValor,
+            factibilidadValor: this.factibilidadValor,
+            factibilidadNivel: this.factibilidadNivel,
+            factibilidadAccion: this.factibilidadAccion
+        };
+
+        console.log('--- FICHA DE MEJORA FORM PAYLOAD ---');
+        console.log(JSON.stringify(payload, null, 2));
+
+        Swal.fire({
+            title: '¡Formulario Guardado/Actualizado!',
+            text: 'Los datos estructurados han sido impresos en la consola del navegador (F12) con éxito.',
+            icon: 'success',
+            confirmButtonColor: '#1d4ed8',
+            confirmButtonText: 'Aceptar'
+        });
+    },
+
+    // Reset / Cancel Form
+    cancelForm() {
+        Swal.fire({
+            title: '¿Cancelar cambios?',
+            text: 'Se perderán las modificaciones actuales.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, cancelar',
+            cancelButtonText: 'No, continuar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '{{ url_for("main.panel") }}';
+            }
+        });
+    },
+
+    // Helper to get qualitative matrix text value
+    getMatrizValue() {
+        const matrix = {
+            'Casi certero': { 'Insignificante': 'Medio', 'Menor': 'Medio', 'Moderado': 'Alto', 'Favorable': 'Muy alto', 'Muy favorable': 'Muy alto' },
+            'Probable': { 'Insignificante': 'Bajo', 'Menor': 'Medio', 'Moderado': 'Alto', 'Favorable': 'Alto', 'Muy favorable': 'Muy alto' },
+            'Posible': { 'Insignificante': 'Bajo', 'Menor': 'Bajo', 'Moderado': 'Medio', 'Favorable': 'Alto', 'Muy favorable': 'Alto' },
+            'Improbable': { 'Insignificante': 'Bajo', 'Menor': 'Bajo', 'Moderado': 'Medio', 'Favorable': 'Medio', 'Muy favorable': 'Alto' },
+            'Raro': { 'Insignificante': 'Bajo', 'Menor': 'Bajo', 'Moderado': 'Bajo', 'Favorable': 'Medio', 'Muy favorable': 'Medio' }
+        };
+        if (matrix[this.probabilidadNivel] && matrix[this.probabilidadNivel][this.consecuenciaNivel]) {
+            return matrix[this.probabilidadNivel][this.consecuenciaNivel];
+        }
+        return 'N/A';
+    },
+
+    getResidualMatrizValue() {
+        const matrix = {
+            'Casi certero': { 'Insignificante': 'Medio', 'Menor': 'Medio', 'Moderado': 'Alto', 'Favorable': 'Muy alto', 'Muy favorable': 'Muy alto' },
+            'Probable': { 'Insignificante': 'Bajo', 'Menor': 'Medio', 'Moderado': 'Alto', 'Favorable': 'Alto', 'Muy favorable': 'Muy alto' },
+            'Posible': { 'Insignificante': 'Bajo', 'Menor': 'Bajo', 'Moderado': 'Medio', 'Favorable': 'Alto', 'Muy favorable': 'Alto' },
+            'Improbable': { 'Insignificante': 'Bajo', 'Menor': 'Bajo', 'Moderado': 'Medio', 'Favorable': 'Medio', 'Muy favorable': 'Alto' },
+            'Raro': { 'Insignificante': 'Bajo', 'Menor': 'Bajo', 'Moderado': 'Bajo', 'Favorable': 'Medio', 'Muy favorable': 'Medio' }
+        };
+        if (matrix[this.residualProbabilidadNivel] && matrix[this.residualProbabilidadNivel][this.residualConsecuenciaNivel]) {
+            return matrix[this.residualProbabilidadNivel][this.residualConsecuenciaNivel];
+        }
+        return 'N/A';
+    }
+}">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-slate-800">Ficha de Mejora</h1>
+    <p class="text-sm text-slate-500">Detalle del indicador de mejora.</p>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="mb-4 text-lg font-semibold text-slate-700">INDICADOR 1: Porcentaje de servicios interoperables validados mediante pruebas</h2>
+    <div class="mt-6">
+      <h3 class="mb-3 text-base font-semibold text-slate-600">1. Datos generales</h3>
+      <div class="w-full max-w-4xl border border-black">
+        <table class="w-full border-collapse text-sm">
+          <tbody>
+            <tr>
+              <td colspan="4" class="border border-black bg-white text-center font-bold py-2">
+                DATOS GENERALES
+              </td>
+            </tr>
+            <tr>
+              <td class="border border-black font-bold text-center px-2 py-2 w-1/6">Proyecto</td>
+              <td class="border border-black px-2 py-1 w-1/3">
+                <input type="text" x-model="proyecto" class="w-full bg-transparent outline-none text-blue-700 border-none px-1" placeholder="(Opcional)">
+              </td>
+              <td class="border border-black font-bold text-center px-2 py-2 w-1/6">Código del Proyecto</td>
+              <td class="border border-black px-2 py-1 w-1/3">
+                <input type="text" x-model="codigoProyecto" class="w-full bg-transparent outline-none border-none px-1" placeholder="(Opcional)">
+              </td>
+            </tr>
+            <tr>
+              <td class="border border-black font-bold text-center px-2 py-2">Proceso asociado</td>
+              <td class="border border-black text-blue-700 px-2 py-1">
+                <input type="text" x-model="procesoAsociado" class="w-full bg-transparent outline-none text-blue-700 border-none px-1" placeholder="(Opcional)">
+              </td>
+              <td class="border border-black font-bold text-center px-2 py-2">Código del Proceso</td>
+              <td class="border border-black text-blue-700 px-2 py-1">
+                <input type="text" x-model="codigoProceso" class="w-full bg-transparent outline-none text-blue-700 border-none px-1" placeholder="(Opcional)">
+              </td>
+            </tr>
+            <tr>
+              <td class="border border-black font-bold text-center px-2 py-2">Responsable del proceso</td>
+              <td class="border border-black text-blue-700 px-2 py-1">
+                <input type="text" x-model="responsableProceso" class="w-full bg-transparent outline-none text-blue-700 border-none px-1" placeholder="(Opcional)">
+              </td>
+              <td class="border border-black font-bold text-center px-2 py-2">Fecha de solicitud</td>
+              <td class="border border-black px-2 py-1">
+                <input type="date" x-model="fechaSolicitud" class="w-full bg-transparent outline-none border-none px-1">
+              </td>
+            </tr>
+            <tr>
+              <td class="border border-black font-bold text-center px-2 py-2">Responsable del proyecto</td>
+              <td class="border border-black px-2 py-1">
+                <input type="text" x-model="responsableProyecto" class="w-full bg-transparent outline-none border-none px-1" placeholder="(Opcional)">
+              </td>
+              <td class="border border-black font-bold text-center px-2 py-2">Fecha requerida</td>
+              <td class="border border-black px-2 py-1">
+                <input type="date" x-model="fechaRequerida" class="w-full bg-transparent outline-none border-none px-1">
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+  </div>
+
+  <!-- 2. Especificación de la mejora -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">2. Especificación de la mejora</h3>
+        <div class="w-full max-w-4xl border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td colspan="2" class="border border-black text-center font-bold py-2">Tipo de mejora</td>
+                <td colspan="3" class="border border-black text-center font-bold py-2">Importancia</td>
+                <td colspan="3" class="border border-black text-center font-bold py-2">Complejidad</td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Mejora</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Rediseño</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Alta</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Media</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Baja</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Alta</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Media</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Baja</td>
+              </tr>
+              <tr>
+                <!-- Tipo de mejora -->
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition" @click="tipoMejora = 'Mejora'" :class="tipoMejora === 'Mejora' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="tipoMejora === 'Mejora' ? 'X' : ''"></span>
+                </td>
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition" @click="tipoMejora = 'Rediseño'" :class="tipoMejora === 'Rediseño' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="tipoMejora === 'Rediseño' ? 'X' : ''"></span>
+                </td>
+                
+                <!-- Importancia -->
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition" @click="importancia = 'Alta'" :class="importancia === 'Alta' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="importancia === 'Alta' ? 'X' : ''"></span>
+                </td>
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition" @click="importancia = 'Media'" :class="importancia === 'Media' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="importancia === 'Media' ? 'X' : ''"></span>
+                </td>
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition" @click="importancia = 'Baja'" :class="importancia === 'Baja' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="importancia === 'Baja' ? 'X' : ''"></span>
+                </td>
+                
+                <!-- Complejidad -->
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition" @click="complejidad = 'Alta'" :class="complejidad === 'Alta' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="complejidad === 'Alta' ? 'X' : ''"></span>
+                </td>
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition" @click="complejidad = 'Media'" :class="complejidad === 'Media' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="complejidad === 'Media' ? 'X' : ''"></span>
+                </td>
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition" @click="complejidad = 'Baja'" :class="complejidad === 'Baja' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="complejidad === 'Baja' ? 'X' : ''"></span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3.3.1. Nivel de consecuencias -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">3.3.1. Nivel de consecuencias</h3>
+        <div class="w-full max-w-4xl border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Nivel de consecuencia</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Personas</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Ambiente</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Economía</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Administración pública</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Entorno social</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Infraestructura</td>
+              </tr>
+              <!-- Muy favorable -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Muy favorable</td>
+                {% for area in ['Personas', 'Ambiente', 'Economía', 'Administración pública', 'Entorno social', 'Infraestructura'] %}
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition"
+                    @click="consecuenciaNivel = 'Muy favorable'; consecuenciaArea = '{{ area }}'"
+                    :class="consecuenciaNivel === 'Muy favorable' && consecuenciaArea === '{{ area }}' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="consecuenciaNivel === 'Muy favorable' && consecuenciaArea === '{{ area }}' ? 'X' : ''"></span>
+                </td>
+                {% endfor %}
+              </tr>
+              <!-- Favorable -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Favorable</td>
+                {% for area in ['Personas', 'Ambiente', 'Economía', 'Administración pública', 'Entorno social', 'Infraestructura'] %}
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition"
+                    @click="consecuenciaNivel = 'Favorable'; consecuenciaArea = '{{ area }}'"
+                    :class="consecuenciaNivel === 'Favorable' && consecuenciaArea === '{{ area }}' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="consecuenciaNivel === 'Favorable' && consecuenciaArea === '{{ area }}' ? 'X' : ''"></span>
+                </td>
+                {% endfor %}
+              </tr>
+              <!-- Moderado -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Moderado</td>
+                {% for area in ['Personas', 'Ambiente', 'Economía', 'Administración pública', 'Entorno social', 'Infraestructura'] %}
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition"
+                    @click="consecuenciaNivel = 'Moderado'; consecuenciaArea = '{{ area }}'"
+                    :class="consecuenciaNivel === 'Moderado' && consecuenciaArea === '{{ area }}' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="consecuenciaNivel === 'Moderado' && consecuenciaArea === '{{ area }}' ? 'X' : ''"></span>
+                </td>
+                {% endfor %}
+              </tr>
+              <!-- Menor -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Menor</td>
+                {% for area in ['Personas', 'Ambiente', 'Economía', 'Administración pública', 'Entorno social', 'Infraestructura'] %}
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition"
+                    @click="consecuenciaNivel = 'Menor'; consecuenciaArea = '{{ area }}'"
+                    :class="consecuenciaNivel === 'Menor' && consecuenciaArea === '{{ area }}' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="consecuenciaNivel === 'Menor' && consecuenciaArea === '{{ area }}' ? 'X' : ''"></span>
+                </td>
+                {% endfor %}
+              </tr>
+              <!-- Insignificante -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Insignificante</td>
+                {% for area in ['Personas', 'Ambiente', 'Economía', 'Administración pública', 'Entorno social', 'Infraestructura'] %}
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition"
+                    @click="consecuenciaNivel = 'Insignificante'; consecuenciaArea = '{{ area }}'"
+                    :class="consecuenciaNivel === 'Insignificante' && consecuenciaArea === '{{ area }}' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="consecuenciaNivel === 'Insignificante' && consecuenciaArea === '{{ area }}' ? 'X' : ''"></span>
+                </td>
+                {% endfor %}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3.3.2. Probabilidad de ocurrencia -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">3.3.2. Probabilidad de ocurrencia (Nivel de oportunidad)</h3>
+        <div class="w-full max-w-xl border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Nivel de probabilidad</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Intervalo de recurrencia</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="probabilidadNivel === 'Casi certero' ? 'bg-orange-100 font-bold' : 'hover:bg-slate-50'" @click="probabilidadNivel = 'Casi certero'">
+                <td class="border border-black text-center font-bold px-2 py-2">
+                  <span x-show="probabilidadNivel === 'Casi certero'" class="mr-1">✓</span>Casi certero
+                </td>
+                <td class="border border-black text-center px-2 py-2">Mayor a 81%</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="probabilidadNivel === 'Probable' ? 'bg-orange-100 font-bold' : 'hover:bg-slate-50'" @click="probabilidadNivel = 'Probable'">
+                <td class="border border-black text-center font-bold px-2 py-2">
+                  <span x-show="probabilidadNivel === 'Probable'" class="mr-1">✓</span>Probable
+                </td>
+                <td class="border border-black text-center px-2 py-2">Entre 61% y 80%</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="probabilidadNivel === 'Posible' ? 'bg-orange-100 font-bold' : 'hover:bg-slate-50'" @click="probabilidadNivel = 'Posible'">
+                <td class="border border-black text-center font-bold px-2 py-2">
+                  <span x-show="probabilidadNivel === 'Posible'" class="mr-1">✓</span>Posible
+                </td>
+                <td class="border border-black text-center px-2 py-2">Entre 41% y 60%</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="probabilidadNivel === 'Improbable' ? 'bg-orange-100 font-bold' : 'hover:bg-slate-50'" @click="probabilidadNivel = 'Improbable'">
+                <td class="border border-black text-center font-bold px-2 py-2">
+                  <span x-show="probabilidadNivel === 'Improbable'" class="mr-1">✓</span>Improbable
+                </td>
+                <td class="border border-black text-center px-2 py-2">Entre 21% y 40%</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="probabilidadNivel === 'Raro' ? 'bg-orange-100 font-bold' : 'hover:bg-slate-50'" @click="probabilidadNivel = 'Raro'">
+                <td class="border border-black text-center font-bold px-2 py-2">
+                  <span x-show="probabilidadNivel === 'Raro'" class="mr-1">✓</span>Raro
+                </td>
+                <td class="border border-black text-center px-2 py-2">Menor a 20%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3.3.3. Matriz cualitativa de oportunidades -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">3.3.3. Matriz cualitativa de oportunidades</h3>
+        <div class="w-full max-w-4xl border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td rowspan="2" class="border border-black text-center font-bold px-2 py-2 align-middle">Nivel de probabilidad</td>
+                <td colspan="5" class="border border-black text-center font-bold px-2 py-2">Nivel de consecuencia</td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Insignificante</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Menor</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Moderado</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Favorable</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Muy favorable</td>
+              </tr>
+              <!-- Casi certero -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Casi certero</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Casi certero', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isIntersection('Casi certero', 'Insignificante')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Casi certero', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isIntersection('Casi certero', 'Menor')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Casi certero', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-700 text-white'">
+                  Alto <span x-show="isIntersection('Casi certero', 'Moderado')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Casi certero', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-700 text-white'">
+                  Muy alto <span x-show="isIntersection('Casi certero', 'Favorable')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Casi certero', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-700 text-white'">
+                  Muy alto <span x-show="isIntersection('Casi certero', 'Muy favorable')">X</span>
+                </td>
+              </tr>
+              <!-- Probable -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Probable</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Probable', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isIntersection('Probable', 'Insignificante')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Probable', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isIntersection('Probable', 'Menor')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Probable', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isIntersection('Probable', 'Moderado')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Probable', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isIntersection('Probable', 'Favorable')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Probable', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-700 text-white'">
+                  Muy alto <span x-show="isIntersection('Probable', 'Muy favorable')">X</span>
+                </td>
+              </tr>
+              <!-- Posible -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Posible</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Posible', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isIntersection('Posible', 'Insignificante')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Posible', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isIntersection('Posible', 'Menor')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Posible', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isIntersection('Posible', 'Moderado')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Posible', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isIntersection('Posible', 'Favorable')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Posible', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isIntersection('Posible', 'Muy favorable')">X</span>
+                </td>
+              </tr>
+              <!-- Improbable -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Improbable</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Improbable', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isIntersection('Improbable', 'Insignificante')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Improbable', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isIntersection('Improbable', 'Menor')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Improbable', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isIntersection('Improbable', 'Moderado')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Improbable', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isIntersection('Improbable', 'Favorable')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Improbable', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isIntersection('Improbable', 'Muy favorable')">X</span>
+                </td>
+              </tr>
+              <!-- Raro -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Raro</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Raro', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isIntersection('Raro', 'Insignificante')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Raro', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isIntersection('Raro', 'Menor')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Raro', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isIntersection('Raro', 'Moderado')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Raro', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isIntersection('Raro', 'Favorable')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isIntersection('Raro', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isIntersection('Raro', 'Muy favorable')">X</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3.3.4. Elemento de confianza -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">3.3.4. Elemento de confianza</h3>
+        <div class="w-full max-w-5xl border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Criterio de confianza</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Baja confianza</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Moderada confianza</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Alta confianza</td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Dato/información</td>
+                <td class="border border-black px-2 py-2 cursor-pointer transition hover:bg-slate-50" :class="confianzaCriterio === 'Dato/información' && confianzaNivel === 'Baja' ? 'bg-yellow-300 font-bold' : ''" @click="confianzaCriterio = 'Dato/información'; confianzaNivel = 'Baja'">
+                  <span class="font-bold text-brand-700 mr-1" x-show="confianzaCriterio === 'Dato/información' && confianzaNivel === 'Baja'">[X] </span>No hay información específica sobre oportunidades para la comunidad. Sólo hay información anecdótica
+                </td>
+                <td class="border border-black px-2 py-2 cursor-pointer transition hover:bg-slate-50" :class="confianzaCriterio === 'Dato/información' && confianzaNivel === 'Moderada' ? 'bg-yellow-300 font-bold' : ''" @click="confianzaCriterio = 'Dato/información'; confianzaNivel = 'Moderada'">
+                  <span class="font-bold text-brand-700 mr-1" x-show="confianzaCriterio === 'Dato/información' && confianzaNivel === 'Moderada'">[X] </span>Información específica sobre la comunidad u oportunidades del entorno mediante validación histórica o científica
+                </td>
+                <td class="border border-black px-2 py-2 cursor-pointer transition hover:bg-slate-50" :class="confianzaCriterio === 'Dato/información' && confianzaNivel === 'Alta' ? 'bg-yellow-300 font-bold' : ''" @click="confianzaCriterio = 'Dato/información'; confianzaNivel = 'Alta'">
+                  <span class="font-bold text-brand-700 mr-1" x-show="confianzaCriterio === 'Dato/información' && confianzaNivel === 'Alta'">[X] </span>Información específica sobre la comunidad y oportunidades del entorno mediante validación histórica o científica
+                </td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Conocimiento del equipo</td>
+                <td class="border border-black px-2 py-2 cursor-pointer transition hover:bg-slate-50" :class="confianzaCriterio === 'Conocimiento del equipo' && confianzaNivel === 'Baja' ? 'bg-yellow-300 font-bold' : ''" @click="confianzaCriterio = 'Conocimiento del equipo'; confianzaNivel = 'Baja'">
+                  <span class="font-bold text-brand-700 mr-1" x-show="confianzaCriterio === 'Conocimiento del equipo' && confianzaNivel === 'Baja'">[X] </span>No hay verdadero conocimiento sobre el tema
+                </td>
+                <td class="border border-black px-2 py-2 cursor-pointer transition hover:bg-slate-50" :class="confianzaCriterio === 'Conocimiento del equipo' && confianzaNivel === 'Moderada' ? 'bg-yellow-300 font-bold' : ''" @click="confianzaCriterio = 'Conocimiento del equipo'; confianzaNivel = 'Moderada'">
+                  <span class="font-bold text-brand-700 mr-1" x-show="confianzaCriterio === 'Conocimiento del equipo' && confianzaNivel === 'Moderada'">[X] </span>Hay conocimiento endeble sobre el tema
+                </td>
+                <td class="border border-black px-2 py-2 cursor-pointer transition hover:bg-slate-50" :class="confianzaCriterio === 'Conocimiento del equipo' && confianzaNivel === 'Alta' ? 'bg-yellow-300 font-bold' : ''" @click="confianzaCriterio = 'Conocimiento del equipo'; confianzaNivel = 'Alta'">
+                  <span class="font-bold text-brand-700 mr-1" x-show="confianzaCriterio === 'Conocimiento del equipo' && confianzaNivel === 'Alta'">[X] </span>Hay conocimiento técnico especializado
+                </td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Consenso</td>
+                <td class="border border-black px-2 py-2 cursor-pointer transition hover:bg-slate-50" :class="confianzaCriterio === 'Consenso' && confianzaNivel === 'Baja' ? 'bg-yellow-300 font-bold' : ''" @click="confianzaCriterio = 'Consenso'; confianzaNivel = 'Baja'">
+                  <span class="font-bold text-brand-700 mr-1" x-show="confianzaCriterio === 'Consenso' && confianzaNivel === 'Baja'">[X] </span>No hay consenso ni en interpretaciones ni en calificaciones
+                </td>
+                <td class="border border-black px-2 py-2 cursor-pointer transition hover:bg-slate-50" :class="confianzaCriterio === 'Consenso' && confianzaNivel === 'Moderada' ? 'bg-yellow-300 font-bold' : ''" @click="confianzaCriterio = 'Consenso'; confianzaNivel = 'Moderada'">
+                  <span class="font-bold text-brand-700 mr-1" x-show="confianzaCriterio === 'Consenso' && confianzaNivel === 'Moderada'">[X] </span>Consenso en interpretaciones o calificaciones
+                </td>
+                <td class="border border-black px-2 py-2 cursor-pointer transition hover:bg-slate-50" :class="confianzaCriterio === 'Consenso' && confianzaNivel === 'Alta' ? 'bg-yellow-300 font-bold' : ''" @click="confianzaCriterio = 'Consenso'; confianzaNivel = 'Alta'">
+                  <span class="font-bold text-brand-700 mr-1" x-show="confianzaCriterio === 'Consenso' && confianzaNivel === 'Alta'">[X] </span>Consenso en interpretaciones y calificaciones
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- BOTONES DE ACCIÓN (Cancelar y Guardar) -->
+        <div class="mt-6 flex justify-end gap-4 max-w-5xl">
+            <button type="button" @click="cancelForm()" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-slate-200 active:scale-[0.98]">
+                Cancelar
+            </button>
+            <button type="button" @click="submitForm()" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+                {{ icon("save", "h-4 w-4") }}
+                Guardar/Actualizar
+            </button>
+        </div>
+      </div>
+
+      <!-- 3.4. Evaluación de la oportunidad -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">3.4. Evaluación de la oportunidad</h3>
+        <h4 class="mb-2 text-sm font-semibold text-slate-600">3.4.1. Evaluación de la tolerancia</h4>
+        <div class="w-full max-w-md border border-black mb-4">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr class="cursor-pointer transition" @click="tolerancia = 'Intolerante'">
+                <td class="border border-black bg-red-600 w-1/3">&nbsp;</td>
+                <td class="border border-black text-center px-2 py-2" :class="tolerancia === 'Intolerante' ? 'bg-blue-50 font-bold' : ''">
+                  Intolerante <span x-show="tolerancia === 'Intolerante'">X</span>
+                </td>
+              </tr>
+              <tr class="cursor-pointer transition" @click="tolerancia = 'Tolerante'">
+                <td class="border border-black bg-yellow-300 w-1/3">&nbsp;</td>
+                <td class="border border-black text-center px-2 py-2" :class="tolerancia === 'Tolerante' ? 'bg-blue-50 font-bold' : ''">
+                  Tolerante <span x-show="tolerancia === 'Tolerante'">X</span>
+                </td>
+              </tr>
+              <tr class="cursor-pointer transition" @click="tolerancia = 'Generalmente tolerante'">
+                <td class="border border-black bg-green-400 w-1/3">&nbsp;</td>
+                <td class="border border-black text-center px-2 py-2" :class="tolerancia === 'Generalmente tolerante' ? 'bg-blue-50 font-bold' : ''">
+                  Generalmente tolerante <span x-show="tolerancia === 'Generalmente tolerante'">X</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Evaluación de oportunidad de nivel de confianza alta -->
+        <div x-show="confianzaNivel === 'Alta'">
+          <p class="mb-2 text-sm font-semibold text-slate-700">Evaluación de oportunidad de nivel de confianza alta</p>
+          <div class="w-full max-w-4xl border border-black mb-6">
+            <table class="w-full border-collapse text-sm">
+              <tbody>
+                <tr>
+                  <td rowspan="2" class="border border-black text-center font-bold px-2 py-2 align-middle">Nivel de probabilidad</td>
+                  <td colspan="5" class="border border-black text-center font-bold px-2 py-2">Nivel de consecuencia</td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Insignificante</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Menor</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Moderado</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Favorable</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Muy favorable</td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Casi certero</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Casi certero', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Casi certero', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Casi certero', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Casi certero', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Casi certero', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Probable</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Probable', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Probable', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Probable', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Probable', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Probable', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Posible</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Posible', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Posible', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Posible', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Posible', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Posible', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Improbable</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Improbable', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Improbable', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Improbable', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Improbable', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Improbable', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Raro</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Raro', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Raro', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Raro', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Raro', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Raro', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Evaluación de oportunidad de nivel de confianza moderada -->
+        <div x-show="confianzaNivel === 'Moderada'">
+          <p class="mb-2 text-sm font-semibold text-slate-700">Evaluación de oportunidad de nivel de confianza moderada</p>
+          <div class="w-full max-w-4xl border border-black mb-6">
+            <table class="w-full border-collapse text-sm">
+              <tbody>
+                <tr>
+                  <td rowspan="2" class="border border-black text-center font-bold px-2 py-2 align-middle">Nivel de probabilidad</td>
+                  <td colspan="5" class="border border-black text-center font-bold px-2 py-2">Nivel de consecuencia</td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Insignificante</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Menor</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Moderado</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Favorable</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Muy favorable</td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Casi certero</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Casi certero', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Casi certero', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Casi certero', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Casi certero', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Casi certero', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Probable</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Probable', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Probable', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Probable', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Probable', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Probable', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Posible</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Posible', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Posible', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Posible', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Posible', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Posible', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Improbable</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Improbable', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Improbable', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Improbable', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Improbable', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Improbable', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Raro</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Raro', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Raro', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Raro', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Raro', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Raro', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Evaluación de oportunidad de nivel de confianza bajo -->
+        <div x-show="confianzaNivel === 'Baja'">
+          <p class="mb-2 text-sm font-semibold text-slate-700">Evaluación de oportunidad de nivel de confianza bajo</p>
+          <div class="w-full max-w-4xl border border-black mb-6">
+            <table class="w-full border-collapse text-sm">
+              <tbody>
+                <tr>
+                  <td rowspan="2" class="border border-black text-center font-bold px-2 py-2 align-middle">Nivel de probabilidad</td>
+                  <td colspan="5" class="border border-black text-center font-bold px-2 py-2">Nivel de consecuencia</td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Insignificante</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Menor</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Moderado</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Favorable</td>
+                  <td class="border border-black text-center font-bold px-2 py-2">Muy favorable</td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Casi certero</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Casi certero', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Casi certero', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Casi certero', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Casi certero', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Casi certero', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Casi certero', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Probable</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Probable', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Probable', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Probable', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Probable', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Probable', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Probable', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Posible</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Posible', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Posible', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Posible', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Posible', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Posible', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Posible', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Improbable</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Improbable', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Improbable', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Improbable', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Improbable', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Improbable', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-green-700 text-white'">
+                    <span x-show="isIntersection('Improbable', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="border border-black text-center font-bold px-2 py-2">Raro</td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Raro', 'Insignificante')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-red-600 text-white'">
+                    <span x-show="isIntersection('Raro', 'Menor')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Raro', 'Moderado')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Raro', 'Favorable')">X</span>
+                  </td>
+                  <td class="border border-black text-center px-2 py-2 transition" :class="isIntersection('Raro', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow z-10' : 'bg-yellow-300 text-slate-900'">
+                    <span x-show="isIntersection('Raro', 'Muy favorable')">X</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <h4 class="mb-2 text-sm font-semibold text-slate-600">3.4.2. Definir estrategia de tratamiento</h4>
+        <textarea class="w-full max-w-4xl border border-black p-2 mb-6 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 bg-transparent rounded-none resize-y" rows="2" x-model="estrategiaTratamiento"></textarea>
+
+        <!-- 3.4.3. Consecuencia residual -->
+        <h4 class="mb-2 text-sm font-semibold text-slate-600">3.4.3. Consecuencia residual</h4>
+        <div class="w-full max-w-4xl border border-black mb-6">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Nivel de consecuencia</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Personas</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Ambiente</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Economía</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Administración pública</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Entorno social</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Infraestructura</td>
+              </tr>
+              <!-- Muy favorable -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Muy favorable</td>
+                {% for area in ['Personas', 'Ambiente', 'Economía', 'Administración pública', 'Entorno social', 'Infraestructura'] %}
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition"
+                    @click="residualConsecuenciaNivel = 'Muy favorable'; residualConsecuenciaArea = '{{ area }}'"
+                    :class="residualConsecuenciaNivel === 'Muy favorable' && residualConsecuenciaArea === '{{ area }}' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="residualConsecuenciaNivel === 'Muy favorable' && residualConsecuenciaArea === '{{ area }}' ? 'X' : ''"></span>
+                </td>
+                {% endfor %}
+              </tr>
+              <!-- Favorable -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Favorable</td>
+                {% for area in ['Personas', 'Ambiente', 'Economía', 'Administración pública', 'Entorno social', 'Infraestructura'] %}
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition"
+                    @click="residualConsecuenciaNivel = 'Favorable'; residualConsecuenciaArea = '{{ area }}'"
+                    :class="residualConsecuenciaNivel === 'Favorable' && residualConsecuenciaArea === '{{ area }}' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="residualConsecuenciaNivel === 'Favorable' && residualConsecuenciaArea === '{{ area }}' ? 'X' : ''"></span>
+                </td>
+                {% endfor %}
+              </tr>
+              <!-- Moderado -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Moderado</td>
+                {% for area in ['Personas', 'Ambiente', 'Economía', 'Administración pública', 'Entorno social', 'Infraestructura'] %}
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition"
+                    @click="residualConsecuenciaNivel = 'Moderado'; residualConsecuenciaArea = '{{ area }}'"
+                    :class="residualConsecuenciaNivel === 'Moderado' && residualConsecuenciaArea === '{{ area }}' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="residualConsecuenciaNivel === 'Moderado' && residualConsecuenciaArea === '{{ area }}' ? 'X' : ''"></span>
+                </td>
+                {% endfor %}
+              </tr>
+              <!-- Menor -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Menor</td>
+                {% for area in ['Personas', 'Ambiente', 'Economía', 'Administración pública', 'Entorno social', 'Infraestructura'] %}
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition"
+                    @click="residualConsecuenciaNivel = 'Menor'; residualConsecuenciaArea = '{{ area }}'"
+                    :class="residualConsecuenciaNivel === 'Menor' && residualConsecuenciaArea === '{{ area }}' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="residualConsecuenciaNivel === 'Menor' && residualConsecuenciaArea === '{{ area }}' ? 'X' : ''"></span>
+                </td>
+                {% endfor %}
+              </tr>
+              <!-- Insignificante -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Insignificante</td>
+                {% for area in ['Personas', 'Ambiente', 'Economía', 'Administración pública', 'Entorno social', 'Infraestructura'] %}
+                <td class="border border-black text-center px-2 py-2 cursor-pointer hover:bg-slate-55 transition"
+                    @click="residualConsecuenciaNivel = 'Insignificante'; residualConsecuenciaArea = '{{ area }}'"
+                    :class="residualConsecuenciaNivel === 'Insignificante' && residualConsecuenciaArea === '{{ area }}' ? 'bg-blue-50 font-bold' : ''">
+                  <span x-text="residualConsecuenciaNivel === 'Insignificante' && residualConsecuenciaArea === '{{ area }}' ? 'X' : ''"></span>
+                </td>
+                {% endfor %}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 3.4.4. Probabilidad residual -->
+        <h4 class="mb-2 text-sm font-semibold text-slate-600">3.4.4. Probabilidad residual</h4>
+        <div class="w-full max-w-xl border border-black mb-6">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Nivel de probabilidad</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Intervalo de recurrencia</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="residualProbabilidadNivel === 'Casi certero' ? 'bg-orange-100 font-bold' : 'hover:bg-slate-50'" @click="residualProbabilidadNivel = 'Casi certero'">
+                <td class="border border-black text-center font-bold px-2 py-2">
+                  <span x-show="residualProbabilidadNivel === 'Casi certero'" class="mr-1">✓</span>Casi certero
+                </td>
+                <td class="border border-black text-center px-2 py-2">Mayor a 81%</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="residualProbabilidadNivel === 'Probable' ? 'bg-orange-100 font-bold' : 'hover:bg-slate-50'" @click="residualProbabilidadNivel = 'Probable'">
+                <td class="border border-black text-center font-bold px-2 py-2">
+                  <span x-show="residualProbabilidadNivel === 'Probable'" class="mr-1">✓</span>Probable
+                </td>
+                <td class="border border-black text-center px-2 py-2">Entre 61% y 80%</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="residualProbabilidadNivel === 'Posible' ? 'bg-orange-100 font-bold' : 'hover:bg-slate-50'" @click="residualProbabilidadNivel = 'Posible'">
+                <td class="border border-black text-center font-bold px-2 py-2">
+                  <span x-show="residualProbabilidadNivel === 'Posible'" class="mr-1">✓</span>Posible
+                </td>
+                <td class="border border-black text-center px-2 py-2">Entre 41% y 60%</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="residualProbabilidadNivel === 'Improbable' ? 'bg-orange-100 font-bold' : 'hover:bg-slate-50'" @click="residualProbabilidadNivel = 'Improbable'">
+                <td class="border border-black text-center font-bold px-2 py-2">
+                  <span x-show="residualProbabilidadNivel === 'Improbable'" class="mr-1">✓</span>Improbable
+                </td>
+                <td class="border border-black text-center px-2 py-2">Entre 21% y 40%</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="residualProbabilidadNivel === 'Raro' ? 'bg-orange-100 font-bold' : 'hover:bg-slate-50'" @click="residualProbabilidadNivel = 'Raro'">
+                <td class="border border-black text-center font-bold px-2 py-2">
+                  <span x-show="residualProbabilidadNivel === 'Raro'" class="mr-1">✓</span>Raro
+                </td>
+                <td class="border border-black text-center px-2 py-2">Menor a 20%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 3.4.5. Oportunidad residual -->
+        <h4 class="mb-2 text-sm font-semibold text-slate-600">3.4.5. Oportunidad residual</h4>
+        <div class="w-full max-w-4xl border border-black mb-6">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td rowspan="2" class="border border-black text-center font-bold px-2 py-2 align-middle">Nivel de probabilidad</td>
+                <td colspan="5" class="border border-black text-center font-bold px-2 py-2">Nivel de consecuencia</td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Insignificante</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Menor</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Moderado</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Favorable</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Muy favorable</td>
+              </tr>
+              <!-- Casi certero -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Casi certero</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Casi certero', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isResidualIntersection('Casi certero', 'Insignificante')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Casi certero', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isResidualIntersection('Casi certero', 'Menor')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Casi certero', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isResidualIntersection('Casi certero', 'Moderado')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Casi certero', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-700 text-white'">
+                  Muy alto <span x-show="isResidualIntersection('Casi certero', 'Favorable')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Casi certero', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-700 text-white'">
+                  Muy alto <span x-show="isResidualIntersection('Casi certero', 'Muy favorable')">X</span>
+                </td>
+              </tr>
+              <!-- Probable -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Probable</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Probable', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isResidualIntersection('Probable', 'Insignificante')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Probable', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isResidualIntersection('Probable', 'Menor')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Probable', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isResidualIntersection('Probable', 'Moderado')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Probable', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isResidualIntersection('Probable', 'Favorable')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Probable', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-700 text-white'">
+                  Muy alto <span x-show="isResidualIntersection('Probable', 'Muy favorable')">X</span>
+                </td>
+              </tr>
+              <!-- Posible -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Posible</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Posible', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isResidualIntersection('Posible', 'Insignificante')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Posible', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isResidualIntersection('Posible', 'Menor')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Posible', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isResidualIntersection('Posible', 'Moderado')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Posible', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isResidualIntersection('Posible', 'Favorable')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Posible', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isResidualIntersection('Posible', 'Muy favorable')">X</span>
+                </td>
+              </tr>
+              <!-- Improbable -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Improbable</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Improbable', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isResidualIntersection('Improbable', 'Insignificante')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Improbable', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isResidualIntersection('Improbable', 'Menor')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Improbable', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isResidualIntersection('Improbable', 'Moderado')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Improbable', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isResidualIntersection('Improbable', 'Favorable')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Improbable', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-green-400 text-slate-900'">
+                  Alto <span x-show="isResidualIntersection('Improbable', 'Muy favorable')">X</span>
+                </td>
+              </tr>
+              <!-- Raro -->
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Raro</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Raro', 'Insignificante') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isResidualIntersection('Raro', 'Insignificante')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Raro', 'Menor') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isResidualIntersection('Raro', 'Menor')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Raro', 'Moderado') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-red-600 text-white'">
+                  Bajo <span x-show="isResidualIntersection('Raro', 'Moderado')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Raro', 'Favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isResidualIntersection('Raro', 'Favorable')">X</span>
+                </td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" :class="isResidualIntersection('Raro', 'Muy favorable') ? 'bg-white text-slate-900 font-bold ring-4 ring-blue-600 scale-[1.02] shadow' : 'bg-yellow-300 text-slate-900'">
+                  Medio <span x-show="isResidualIntersection('Raro', 'Muy favorable')">X</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3.5. Acciones para abordar la oportunidad -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">3.5. Acciones para abordar la oportunidad</h3>
+        <div class="w-full max-w-4xl border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2 w-1/12">Acción</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Descripción</td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center px-2 py-2">A1</td>
+                <td class="border border-black px-2 py-1">
+                  <input type="text" class="w-full bg-transparent px-1 py-1 focus:outline-none focus:ring-2 focus:ring-blue-600 border-none text-slate-700" x-model="accion1" placeholder="Ejecutar pruebas...">
+                </td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center px-2 py-2">A2</td>
+                <td class="border border-black px-2 py-1">
+                  <input type="text" class="w-full bg-transparent px-1 py-1 focus:outline-none focus:ring-2 focus:ring-blue-600 border-none text-slate-700" x-model="accion2" placeholder="Registrar y revisar...">
+                </td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center px-2 py-2">A3</td>
+                <td class="border border-black px-2 py-1">
+                  <input type="text" class="w-full bg-transparent px-1 py-1 focus:outline-none focus:ring-2 focus:ring-blue-600 border-none text-slate-700" x-model="accion3" placeholder="Corregir observaciones...">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3.6. Costo: referencial -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">3.6. Costo: referencial</h3>
+        <div class="w-full max-w-4xl border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td colspan="3" class="border border-black text-center font-bold px-2 py-2">
+                  Valores posibles para el costo en función del tanto por ciento que emplea del Presupuesto asignado
+                </td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Descripción</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Nivel de empleo del presupuesto</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Valor</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="costoValor === 5 ? 'bg-yellow-50' : 'hover:bg-slate-50'" @click="costoValor = 5">
+                <td class="border border-black px-2 py-2"><span class="font-bold">Alto consumo</span> (Gastos importantes en el presupuesto del proceso, más del 80%)</td>
+                <td class="border border-black text-center px-2 py-2" :class="costoValor === 5 ? 'font-bold' : ''">Alto</td>
+                <td class="border border-black text-center px-2 py-2 transition" :class="costoValor === 5 ? 'bg-yellow-300 font-bold' : ''">5</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="costoValor === 2 ? 'bg-yellow-50' : 'hover:bg-slate-50'" @click="costoValor = 2">
+                <td class="border border-black px-2 py-2"><span class="font-bold">Medio consumo</span> (Gastos moderados en el presupuesto del proceso, entre el 50% al 80%)</td>
+                <td class="border border-black text-center px-2 py-2" :class="costoValor === 2 ? 'font-bold' : ''">Medio</td>
+                <td class="border border-black text-center px-2 py-2 transition" :class="costoValor === 2 ? 'bg-yellow-300 font-bold' : ''">2</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="costoValor === 1 ? 'bg-yellow-50' : 'hover:bg-slate-50'" @click="costoValor = 1">
+                <td class="border border-black px-2 py-2"><span class="font-bold">Bajo consumo</span> (Gastos poco significativos en el presupuesto del proceso, menor al 50%).</td>
+                <td class="border border-black text-center px-2 py-2" :class="costoValor === 1 ? 'font-bold' : ''">Bajo</td>
+                <td class="border border-black text-center px-2 py-2 transition" :class="costoValor === 1 ? 'bg-yellow-300 font-bold' : ''">1</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3.7. Impacto -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">3.7. Impacto</h3>
+        <div class="w-full max-w-4xl border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td colspan="3" class="border border-black text-center font-bold px-2 py-2">Nivel de Impacto</td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Impacto</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Nivel de impacto</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Valor</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="impactoValor === 7 ? 'bg-yellow-50' : 'hover:bg-slate-50'" @click="impactoValor = 7">
+                <td class="border border-black px-2 py-2 text-center">Alto (recuperación alta en el proceso de …….)</td>
+                <td class="border border-black text-center px-2 py-2" :class="impactoValor === 7 ? 'font-bold' : ''">Alto</td>
+                <td class="border border-black text-center px-2 py-2 transition" :class="impactoValor === 7 ? 'bg-yellow-300 font-bold' : ''">7</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="impactoValor === 5 ? 'bg-yellow-50' : 'hover:bg-slate-50'" @click="impactoValor = 5">
+                <td class="border border-black px-2 py-2 text-center">Recuperación alta en su proceso, además de repercusión en otro</td>
+                <td class="border border-black text-center px-2 py-2" :class="impactoValor === 5 ? 'font-bold' : ''">Medio</td>
+                <td class="border border-black text-center px-2 py-2 transition" :class="impactoValor === 5 ? 'bg-yellow-300 font-bold' : ''">5</td>
+              </tr>
+              <tr class="cursor-pointer transition" :class="impactoValor === 3 ? 'bg-yellow-50' : 'hover:bg-slate-50'" @click="impactoValor = 3">
+                <td class="border border-black px-2 py-2 text-center">Bajo (recuperación media o baja en cualquier proceso).</td>
+                <td class="border border-black text-center px-2 py-2" :class="impactoValor === 3 ? 'font-bold' : ''">Bajo</td>
+                <td class="border border-black text-center px-2 py-2 transition" :class="impactoValor === 3 ? 'bg-yellow-300 font-bold' : ''">3</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3.8. Factibilidad -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">3.8. Factibilidad</h3>
+        <div class="w-full max-w-4xl border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td colspan="3" class="border border-black text-center font-bold px-2 py-2">Nivel de Factibilidad</td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">Acción recomendada</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Nivel de factibilidad</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Valor</td>
+              </tr>
+              <tr :class="factibilidadValor > 14 ? 'bg-yellow-50' : ''">
+                <td class="border border-black text-center font-bold px-2 py-2">Analizar la oportunidad de mejora</td>
+                <td class="border border-black text-center px-2 py-2">Bajo</td>
+                <td class="border border-black text-center px-2 py-2 transition" :class="factibilidadValor > 14 ? 'bg-yellow-300 font-bold' : ''">
+                  F&gt;14 <span x-show="factibilidadValor > 14" x-text="'(F = ' + factibilidadValor + ')'"></span>
+                </td>
+              </tr>
+              <tr :class="factibilidadValor > 7 && factibilidadValor <= 14 ? 'bg-yellow-50' : ''">
+                <td class="border border-black text-center font-bold px-2 py-2">Ejecutar la acción a corto plazo</td>
+                <td class="border border-black text-center px-2 py-2">Medio</td>
+                <td class="border border-black text-center px-2 py-2 transition" :class="factibilidadValor > 7 && factibilidadValor <= 14 ? 'bg-yellow-300 font-bold' : ''">
+                  7&lt; F ≤14 <span x-show="factibilidadValor > 7 && factibilidadValor <= 14" x-text="'(F = ' + factibilidadValor + ')'"></span>
+                </td>
+              </tr>
+              <tr :class="factibilidadValor >= 1 && factibilidadValor <= 7 ? 'bg-yellow-50' : ''">
+                <td class="border border-black text-center font-bold px-2 py-2">Ejecutar la acción inmediatamente</td>
+                <td class="border border-black text-center px-2 py-2">Alto</td>
+                <td class="border border-black text-center px-2 py-2 transition" :class="factibilidadValor >= 1 && factibilidadValor <= 7 ? 'bg-yellow-300 font-bold' : ''">
+                  1≤F≤7 <span x-show="factibilidadValor >= 1 && factibilidadValor <= 7" x-text="'(F = ' + factibilidadValor + ')'"></span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3.10. Estado -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">3.10. Estado</h3>
+        <div class="w-full max-w-md border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td class="border border-black bg-red-600 w-1/3">&nbsp;</td>
+                <td class="border border-black text-center font-bold px-2 py-2">No iniciado</td>
+              </tr>
+              <tr>
+                <td class="border border-black bg-yellow-300 w-1/3">&nbsp;</td>
+                <td class="border border-black text-center font-bold px-2 py-2">En proceso</td>
+              </tr>
+              <tr>
+                <td class="border border-black bg-green-400 w-1/3">&nbsp;</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Cerrado</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabla resumen -->
+      <div class="mt-8">
+        <div class="w-full border border-black overflow-x-auto">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td class="border border-black text-center font-bold px-2 py-2">N°</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Tipo de oportunidad</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Oportunidades identificadas</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Análisis de la oportunidad</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Evaluación de la oportunidad</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Acciones para abordar la oportunidad</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Costo</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Impacto</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Factibilidad</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Plazo</td>
+                <td class="border border-black text-center font-bold px-2 py-2">Estado</td>
+              </tr>
+              <tr>
+                <td class="border border-black text-center px-2 py-2">1</td>
+                <td class="border border-black text-center px-2 py-2">Tecnológica</td>
+                <td class="border border-black px-2 py-2">Mejora en la validación de servicios interoperables mediante pruebas</td>
+                <td class="border border-black px-2 py-2">Consecuencia: <span x-text="consecuenciaNivel"></span>; Probabilidad: <span x-text="probabilidadNivel"></span>; Nivel de oportunidad: <span x-text="getMatrizValue()"></span></td>
+                <td class="border border-black px-2 py-2">Tolerancia: <span x-text="tolerancia"></span>; Consecuencia residual: <span x-text="residualConsecuenciaNivel"></span>; Probabilidad residual: <span x-text="residualProbabilidadNivel"></span>; Oportunidad residual: <span x-text="getResidualMatrizValue()"></span></td>
+                <td class="border border-black text-center px-2 py-2">A1, A2, A3</td>
+                <td class="border border-black text-center px-2 py-2" x-text="costoValor"></td>
+                <td class="border border-black text-center px-2 py-2" x-text="impactoValor"></td>
+                <td class="border border-black text-center px-2 py-2" x-text="factibilidadValor"></td>
+                <td class="border border-black text-center px-2 py-2">1 mes</td>
+                <td class="border border-black text-center font-bold px-2 py-2 bg-yellow-300">En proceso</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4. Descripción de la mejora -->
+      <div class="mt-8">
+        <h3 class="mb-3 text-base font-semibold text-slate-600">4. Descripción de la mejora</h3>
+        <div class="w-full max-w-4xl border border-black">
+          <table class="w-full border-collapse text-sm">
+            <tbody>
+              <tr>
+                <td class="border border-black font-bold px-2 py-2 w-1/4 align-top">Declaración del problema (Qué, cuándo, dónde, cuánto)</td>
+                <td class="border border-black px-2 py-2">Las pruebas de interoperabilidad registran un avance del 85% al mes de mayo, por debajo de la meta anual del 95%, con una brecha de 10 puntos porcentuales que puede afectar la integración de los sistemas institucionales.</td>
+              </tr>
+              <tr>
+                <td class="border border-black font-bold px-2 py-2 align-top">Objetivo</td>
+                <td class="border border-black px-2 py-2">Mejorar la validación de los servicios interoperables mediante pruebas, asegurando que los sistemas institucionales intercambien información de manera adecuada, segura y eficiente.</td>
+              </tr>
+              <tr>
+                <td class="border border-black font-bold px-2 py-2 align-top">Indicador y meta</td>
+                <td class="border border-black px-2 py-2">Indicador: Porcentaje de servicios interoperables validados mediante pruebas. Meta: 95%</td>
+              </tr>
+              <tr>
+                <td class="border border-black font-bold px-2 py-2 align-top">Alcance</td>
+                <td class="border border-black px-2 py-2">La mejora comprende el proceso de interoperabilidad digital, específicamente las pruebas de interoperabilidad aplicadas a los servicios interoperables implementados en los sistemas de información institucionales.</td>
+              </tr>
+              <tr>
+                <td class="border border-black font-bold px-2 py-2 align-top">Acción de mejora</td>
+                <td class="border border-black px-2 py-2">Ejecutar pruebas de interoperabilidad a los servicios interoperables para verificar su correcto funcionamiento.</td>
+              </tr>
+              <tr>
+                <td class="border border-black font-bold px-2 py-2 align-top">Impacto</td>
+                <td class="border border-black px-2 py-2">
+                  <span x-text="impactoValor === 7 ? 'Alto = 7' : (impactoValor === 5 ? 'Medio = 5' : 'Bajo = 3')"></span>
+                </td>
+              </tr>
+              <tr>
+                <td class="border border-black font-bold px-2 py-2 align-top">Costo</td>
+                <td class="border border-black px-2 py-2">
+                  <span x-text="costoValor === 5 ? 'Alto = 5' : (costoValor === 2 ? 'Medio = 2' : 'Bajo = 1')"></span>
+                </td>
+              </tr>
+              <tr>
+                <td class="border border-black font-bold px-2 py-2 align-top">Factibilidad</td>
+                <td class="border border-black px-2 py-2">
+                  F = C × I = <span x-text="costoValor"></span> × <span x-text="impactoValor"></span> = <span x-text="factibilidadValor"></span>. 
+                  La factibilidad es <span x-text="factibilidadNivel.toLowerCase()"></span>, por lo que se recomienda <span x-text="factibilidadAccion.toLowerCase()"></span>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

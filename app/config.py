@@ -16,6 +16,10 @@ class Config:
         "port": int(os.getenv("DB_PORT", os.getenv("MYSQLPORT", 3306))),
     }
 
+    # AI Provider
+    AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
     # S3 / Backblaze B2
     S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID")
     S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY")

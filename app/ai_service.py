@@ -1,19 +1,15 @@
-import os
 import json
-import urllib.request
 import logging
 
+from app.providers import get_provider
+
 logger = logging.getLogger(__name__)
+_ai = get_provider()
 
 def generar_resumen_panel(gestion_nombre, periodo_nombre, total_indicadores, evaluados, avance_acciones, avance_objetivos, conteo_estados, seguimiento):
     """
-    Genera un análisis narrativo del panel de control utilizando la API de Google Gemini (Studio).
+    Genera un análisis narrativo del panel de control utilizando IA.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        logger.error("No se ha configurado la variable de entorno GEMINI_API_KEY")
-        return "Error: No se ha configurado la API Key de Gemini en el archivo .env."
-
     # Formatear la lista de indicadores para el prompt
     indicadores_str = ""
     for f in seguimiento:
@@ -57,48 +53,13 @@ Instrucciones para tu respuesta:
 8. NO inventes datos. Limítate estrictamente a la información provista.
 """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
-    
-    payload = {
-        "contents": [{
-            "parts": [{
-                "text": prompt
-            }]
-        }],
-        "generationConfig": {
-            "temperature": 0.2,
-            "maxOutputTokens": 3000
-        }
-    }
-    
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        # Timeout de 30 segundos
-        with urllib.request.urlopen(req, timeout=30) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            if "candidates" in res_data and len(res_data["candidates"]) > 0:
-                parts = res_data["candidates"][0].get("content", {}).get("parts", [])
-                if parts:
-                    return parts[0].get("text", "No se recibió texto de respuesta de la IA.")
-            return "Error: Respuesta inválida o vacía de la API de Gemini."
-    except Exception as e:
-        logger.exception("Error al llamar a la API de Gemini")
-        return f"Error de comunicación con la IA: {str(e)}"
+    return _ai["generate"](prompt, temperature=0.2, max_tokens=3000)
 
 
 def generar_kurt_lewin_panel(gestion_nombre, periodo_nombre, seguimiento):
     """
     Genera un análisis de implementación del modelo de Kurt Lewin para los indicadores no concluidos.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        logger.error("No se ha configurado la variable de entorno GEMINI_API_KEY")
-        return "Error: No se ha configurado la API Key de Gemini en el archivo .env."
 
     indicadores_str = ""
     for f in seguimiento:
@@ -228,41 +189,13 @@ REGLA OBLIGATORIA DE COMPLETITUD:
 - No inventes datos. Limítate estrictamente a la información provista.
 """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.2,
-            "maxOutputTokens": 6000
-        }
-    }
-
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=30) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            if "candidates" in res_data and len(res_data["candidates"]) > 0:
-                parts = res_data["candidates"][0].get("content", {}).get("parts", [])
-                if parts:
-                    return parts[0].get("text", "No se recibió texto de respuesta de la IA.")
-            return "Error: Respuesta inválida o vacía de la API de Gemini."
-    except Exception as e:
-        logger.exception("Error al llamar a la API de Gemini para Kurt Lewin")
-        return f"Error de comunicación con la IA: {str(e)}"
+    return _ai["generate"](prompt, temperature=0.2, max_tokens=6000)
 
 
 def consultar_asistente(mensaje, historial, context_data):
     """
     Responde consultas del usuario utilizando el contexto estructurado de la base de datos.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return "Error: No se ha configurado la API Key de Gemini en el archivo .env."
 
     # Construir historial para la API
     historial_filtrado = []
@@ -306,33 +239,7 @@ REGLAS DE RESPUESTA:
         "parts": [{"text": prompt_completo}]
     })
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
-    
-    payload = {
-        "contents": historial_filtrado,
-        "generationConfig": {
-            "temperature": 0.3,
-            "maxOutputTokens": 1500
-        }
-    }
-    
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=30) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            if "candidates" in res_data and len(res_data["candidates"]) > 0:
-                parts = res_data["candidates"][0].get("content", {}).get("parts", [])
-                if parts:
-                    return parts[0].get("text", "No se pudo obtener respuesta del asistente.")
-            return "Respuesta vacía del asistente."
-    except Exception as e:
-        logger.exception("Error en el chatbot de Gemini")
-        return f"Error de comunicación con el asistente de IA: {str(e)}"
+    return _ai["chat"](historial_filtrado, temperature=0.3, max_tokens=1500)
 
 
 def consultar_asistente_wizard(mensaje, historial, context_data, system_instruction_add=""):
@@ -340,9 +247,6 @@ def consultar_asistente_wizard(mensaje, historial, context_data, system_instruct
     Responde consultas del usuario utilizando el contexto estructurado de la base de datos
     e incorporando instrucciones adicionales para guiar el asistente interactivo de vinculación.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return "Error: No se ha configurado la API Key de Gemini en el archivo .env."
 
     # Construir historial para la API
     historial_filtrado = []
@@ -388,30 +292,4 @@ REGLAS DE RESPUESTA:
         "parts": [{"text": prompt_completo}]
     })
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
-    
-    payload = {
-        "contents": historial_filtrado,
-        "generationConfig": {
-            "temperature": 0.3,
-            "maxOutputTokens": 1500
-        }
-    }
-    
-    try:
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=30) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            if "candidates" in res_data and len(res_data["candidates"]) > 0:
-                parts = res_data["candidates"][0].get("content", {}).get("parts", [])
-                if parts:
-                    return parts[0].get("text", "No se pudo obtener respuesta del asistente.")
-            return "Respuesta vacía del asistente."
-    except Exception as e:
-        logger.exception("Error en el chatbot de Gemini")
-        return f"Error de comunicación con el asistente de IA: {str(e)}"
+    return _ai["chat"](historial_filtrado, temperature=0.3, max_tokens=1500)
