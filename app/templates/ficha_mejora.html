@@ -3,57 +3,78 @@
 {% block title %}Ficha de Mejora{% endblock %}
 
 {% block content %}
+<script>
+  window.indicadoresData = {{ indicadores_json | default('[]') | safe }};
+</script>
+
 <div x-data="{
+    // List of indicators passed from Python
+    indicadores: window.indicadoresData || [],
+    selectedIndicador: null,
+    open: false,
+    search: '',
+    hasSavedRecord: false,
+
     // 1. Datos generales
-    proyecto: 'Interoperabilidad digital',
+    proyecto: '',
     codigoProyecto: '',
-    procesoAsociado: 'Pruebas de interoperabilidad',
-    codigoProceso: 'M1.3.2',
-    responsableProceso: 'Pajuelo Mendoza David Erlix',
+    procesoAsociado: '',
+    codigoProceso: '',
+    responsableProceso: '',
     fechaSolicitud: '',
     responsableProyecto: '',
     fechaRequerida: '',
 
     // 2. Especificación de la mejora
-    tipoMejora: 'Mejora', // 'Mejora', 'Rediseño'
-    importancia: 'Alta', // 'Alta', 'Media', 'Baja'
-    complejidad: 'Media', // 'Alta', 'Media', 'Baja'
+    tipoMejora: '',
+    importancia: '',
+    complejidad: '',
 
     // 3.3.1. Nivel de consecuencias (Selección de un único espacio / celda)
-    consecuenciaNivel: 'Moderado',
-    consecuenciaArea: 'Administración pública',
+    consecuenciaNivel: '',
+    consecuenciaArea: '',
 
     // 3.3.2. Probabilidad de ocurrencia (Selecciona uno del intervalo)
-    probabilidadNivel: 'Casi certero',
+    probabilidadNivel: '',
 
     // 3.4.1. Evaluación de la tolerancia
-    tolerancia: 'Tolerante',
+    tolerancia: '',
 
     // 3.3.4. Elementos de confianza (Selección de una única celda de toda la tabla)
-    confianzaCriterio: 'Dato/información',
-    confianzaNivel: 'Alta',
+    confianzaCriterio: '',
+    confianzaNivel: '',
 
     // 3.4.3. Consecuencia residual
-    residualConsecuenciaNivel: 'Moderado',
-    residualConsecuenciaArea: 'Entorno social',
+    residualConsecuenciaNivel: '',
+    residualConsecuenciaArea: '',
 
     // 3.4.4. Probabilidad residual
-    residualProbabilidadNivel: 'Improbable',
+    residualProbabilidadNivel: '',
 
     // 3.4.2. Definir estrategia de tratamiento
-    estrategiaTratamiento: 'Fortalecer las pruebas de interoperabilidad para validar los servicios interoperables y asegurar su correcto funcionamiento entre los sistemas institucionales.',
+    estrategiaTratamiento: '',
 
     // 3.5. Acciones para abordar la oportunidad
-    accion1: 'Ejecutar pruebas de interoperabilidad a los servicios interoperables para verificar su correcto funcionamiento.',
-    accion2: 'Registrar y revisar los resultados de las pruebas de interoperabilidad, identificando observaciones o fallas técnicas.',
-    accion3: 'Corregir las observaciones detectadas y validar nuevamente los servicios hasta cumplir con los criterios establecidos.',
+    accion1: '',
+    accion2: '',
+    accion3: '',
 
     // 3.6 & 3.7 Costo e Impacto
-    costoValor: 2,
-    impactoValor: 7,
+    costoValor: null,
+    impactoValor: null,
+
+    // 3.10. Estado
+    estadoProyecto: '',
+
+    // 4. Descripción de la mejora
+    declaracionProblema: '',
+    objetivo: '',
+    indicadorMeta: '',
+    alcance: '',
+    accionMejora: '',
 
     get factibilidadValor() {
-        return this.costoValor * this.impactoValor;
+        return (this.costoValor || 0) * (this.impactoValor || 0);
     },
 
     get factibilidadNivel() {
@@ -79,67 +100,207 @@
         return this.residualProbabilidadNivel === prob && this.residualConsecuenciaNivel === consec;
     },
 
+    getFilteredIndicadores(search) {
+        if (!search) return this.indicadores;
+        const lower = search.toLowerCase();
+        return this.indicadores.filter(ind => 
+            ind.codigo.toLowerCase().includes(lower) || 
+            ind.nombre.toLowerCase().includes(lower)
+        );
+    },
+
+    selectIndicador(ind) {
+        this.selectedIndicador = ind;
+        this.clearForm();
+        this.indicadorMeta = 'Indicador: ' + ind.nombre + '. Meta: ' + ind.meta_anual + '%';
+        this.hasSavedRecord = false;
+
+        fetch(`/api/ficha-mejora/${ind.id}`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    Object.assign(this, res.data);
+                    this.hasSavedRecord = true;
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Ficha cargada desde la base de datos',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+            })
+            .catch(err => {
+                console.error('Error al obtener la ficha:', err);
+            });
+    },
+
+    clearForm() {
+        this.proyecto = '';
+        this.codigoProyecto = '';
+        this.procesoAsociado = '';
+        this.codigoProceso = '';
+        this.responsableProceso = '';
+        this.fechaSolicitud = '';
+        this.responsableProyecto = '';
+        this.fechaRequerida = '';
+        this.tipoMejora = '';
+        this.importancia = '';
+        this.complejidad = '';
+        this.consecuenciaNivel = '';
+        this.consecuenciaArea = '';
+        this.probabilidadNivel = '';
+        this.tolerancia = '';
+        this.confianzaCriterio = '';
+        this.confianzaNivel = '';
+        this.residualConsecuenciaNivel = '';
+        this.residualConsecuenciaArea = '';
+        this.residualProbabilidadNivel = '';
+        this.estrategiaTratamiento = '';
+        this.accion1 = '';
+        this.accion2 = '';
+        this.accion3 = '';
+        this.costoValor = null;
+        this.impactoValor = null;
+        this.estadoProyecto = '';
+        this.declaracionProblema = '';
+        this.objetivo = '';
+        this.indicadorMeta = '';
+        this.alcance = '';
+        this.accionMejora = '';
+    },
+
+    fillDataWithAI() {
+        if (!this.selectedIndicador) return;
+        const ind = this.selectedIndicador;
+
+        // Determinar proceso vinculado
+        if (ind.procesos && ind.procesos.length > 0) {
+            this.procesoAsociado = ind.procesos[0].nombre_proceso;
+            this.codigoProceso = ind.procesos[0].codigo_proceso;
+        } else {
+            this.procesoAsociado = 'Proceso no especificado';
+            this.codigoProceso = 'N/A';
+        }
+
+        this.proyecto = 'Interoperabilidad digital';
+        this.codigoProyecto = 'PRY-2026-003';
+        this.responsableProceso = 'Pajuelo Mendoza David Erlix';
+        this.fechaSolicitud = new Date().toISOString().split('T')[0];
+        this.responsableProyecto = 'García Pérez Luis';
+        this.fechaRequerida = new Date(Date.now() + 60*24*60*60*1000).toISOString().split('T')[0]; // 2 meses límite
+
+        this.tipoMejora = 'Mejora';
+        this.importancia = 'Alta';
+        this.complejidad = 'Media';
+
+        this.consecuenciaNivel = 'Moderado';
+        this.consecuenciaArea = 'Administración pública';
+        this.probabilidadNivel = 'Casi certero';
+
+        this.tolerancia = 'Tolerante';
+
+        this.confianzaCriterio = 'Dato/información';
+        this.confianzaNivel = 'Alta';
+
+        this.residualConsecuenciaNivel = 'Moderado';
+        this.residualConsecuenciaArea = 'Entorno social';
+        this.residualProbabilidadNivel = 'Improbable';
+
+        this.estrategiaTratamiento = 'Optimizar y fortalecer el subproceso ' + this.codigoProceso + ' (' + this.procesoAsociado + ') mediante la implementación de controles proactivos, automatizaciones de pruebas y reingeniería de flujos.';
+
+        this.accion1 = 'Desplegar un plan de validación de esquemas y pruebas automatizadas en los entornos del proceso.';
+        this.accion2 = 'Registrar y monitorear las observaciones detectadas en las ejecuciones mensuales, identificando cuellos de botella.';
+        this.accion3 = 'Capacitar a los operadores del proceso en mejores prácticas y optimización técnica para asegurar la conformidad del indicador.';
+
+        this.costoValor = 2;
+        this.impactoValor = 7;
+
+        this.estadoProyecto = 'En proceso';
+
+        // Redacción dinámica del problema según datos reales de BD
+        let histText = '';
+        if (ind.historial && ind.historial.length > 0) {
+            const ult = ind.historial[ind.historial.length - 1];
+            histText = ' En el último mes de medición (' + ult.mes + '), se registró un valor obtenido de ' + ult.valor + ' contra una meta mensual de ' + ult.meta + '.';
+        }
+
+        this.declaracionProblema = 'El indicador ' + ind.codigo + ' (' + ind.nombre + ') registra un avance del ' + ind.avance.toFixed(1) + '%, por debajo de la meta del ' + ind.meta_anual + '%.' + histText + ' La línea base histórica del indicador se situó en ' + ind.linea_base.toFixed(1) + '%, lo que evidencia una brecha acumulada.';
+        this.objetivo = 'Elevar el desempeño del indicador ' + ind.codigo + ' hasta alcanzar o superar la meta anual de ' + ind.meta_anual + '%, optimizando el proceso de ' + this.procesoAsociado + '.';
+        this.indicadorMeta = 'Indicador: ' + ind.nombre + '. Meta: ' + ind.meta_anual + '%';
+        this.alcance = 'Comprende todas las fases del proceso ' + this.codigoProceso + ' (' + this.procesoAsociado + ') y la infraestructura del indicador ' + ind.codigo + '.';
+        this.accionMejora = 'Implementar pruebas continuas, control de errores y monitoreo automatizado en ' + this.procesoAsociado + '.';
+    },
+
     // Submit Action
     submitForm() {
+        if (!this.selectedIndicador) return;
+
         const payload = {
-            datosGenerales: {
-                proyecto: this.proyecto || null,
-                codigoProyecto: this.codigoProyecto || null,
-                procesoAsociado: this.procesoAsociado || null,
-                codigoProceso: this.codigoProceso || null,
-                responsableProceso: this.responsableProceso || null,
-                fechaSolicitud: this.fechaSolicitud || null,
-                responsableProyecto: this.responsableProyecto || null,
-                fechaRequerida: this.fechaRequerida || null
-            },
-            especificacionMejora: {
-                tipoMejora: this.tipoMejora,
-                importancia: this.importancia,
-                complejidad: this.complejidad
-            },
-            nivelConsecuencias: {
-                nivel: this.consecuenciaNivel,
-                area: this.consecuenciaArea
-            },
-            probabilidadOcurrencia: this.probabilidadNivel,
-            matrizCualitativa: {
-                probabilidad: this.probabilidadNivel,
-                consecuencia: this.consecuenciaNivel,
-                resultado: this.getMatrizValue()
-            },
-            elementosConfianza: {
-                criterioSeleccionado: this.confianzaCriterio,
-                nivelSeleccionado: this.confianzaNivel
-            },
-            evaluacionTolerancia: this.tolerancia,
-            residualConsecuencias: {
-                nivel: this.residualConsecuenciaNivel,
-                area: this.residualConsecuenciaArea
-            },
-            residualProbabilidad: this.residualProbabilidadNivel,
-            matrizResidual: {
-                probabilidad: this.residualProbabilidadNivel,
-                consecuencia: this.residualConsecuenciaNivel,
-                resultado: this.getResidualMatrizValue()
-            },
+            proyecto: this.proyecto || null,
+            codigoProyecto: this.codigoProyecto || null,
+            procesoAsociado: this.procesoAsociado || null,
+            codigoProceso: this.codigoProceso || null,
+            responsableProceso: this.responsableProceso || null,
+            fechaSolicitud: this.fechaSolicitud || null,
+            responsableProyecto: this.responsableProyecto || null,
+            fechaRequerida: this.fechaRequerida || null,
+            tipoMejora: this.tipoMejora,
+            importancia: this.importancia,
+            complejidad: this.complejidad,
+            consecuenciaNivel: this.consecuenciaNivel,
+            consecuenciaArea: this.consecuenciaArea,
+            probabilidadNivel: this.probabilidadNivel,
+            tolerancia: this.tolerancia,
+            confianzaCriterio: this.confianzaCriterio,
+            confianzaNivel: this.confianzaNivel,
+            residualConsecuenciaNivel: this.residualConsecuenciaNivel,
+            residualConsecuenciaArea: this.residualConsecuenciaArea,
+            residualProbabilidadNivel: this.residualProbabilidadNivel,
             estrategiaTratamiento: this.estrategiaTratamiento,
-            accionesAbordar: [this.accion1, this.accion2, this.accion3],
+            accion1: this.accion1,
+            accion2: this.accion2,
+            accion3: this.accion3,
             costoValor: this.costoValor,
             impactoValor: this.impactoValor,
-            factibilidadValor: this.factibilidadValor,
-            factibilidadNivel: this.factibilidadNivel,
-            factibilidadAccion: this.factibilidadAccion
+            estadoProyecto: this.estadoProyecto,
+            declaracionProblema: this.declaracionProblema,
+            objetivo: this.objetivo,
+            indicadorMeta: this.indicadorMeta,
+            alcance: this.alcance,
+            accionMejora: this.accionMejora
         };
 
-        console.log('--- FICHA DE MEJORA FORM PAYLOAD ---');
-        console.log(JSON.stringify(payload, null, 2));
-
-        Swal.fire({
-            title: '¡Formulario Guardado/Actualizado!',
-            text: 'Los datos estructurados han sido impresos en la consola del navegador (F12) con éxito.',
-            icon: 'success',
-            confirmButtonColor: '#1d4ed8',
-            confirmButtonText: 'Aceptar'
+        fetch('/api/ficha-mejora', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                indicador_id: this.selectedIndicador.id,
+                datos: payload
+            })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success) {
+                this.hasSavedRecord = true;
+                Swal.fire({
+                    title: '¡Guardado!',
+                    text: 'La ficha de mejora ha sido guardada exitosamente.',
+                    icon: 'success',
+                    confirmButtonColor: '#1d4ed8',
+                    confirmButtonText: 'Aceptar'
+                });
+            } else {
+                Swal.fire('Error', res.message || 'No se pudo guardar la ficha.', 'error');
+            }
+        })
+        .catch(err => {
+            console.error('Error al guardar:', err);
+            Swal.fire('Error', 'Ocurrió un error en el servidor.', 'error');
         });
     },
 
@@ -156,13 +317,14 @@
             cancelButtonText: 'No, continuar'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = '{{ url_for("main.panel") }}';
+                window.location.href = '{{ url_for('main.panel') }}';
             }
         });
     },
 
     // Helper to get qualitative matrix text value
     getMatrizValue() {
+        if (!this.probabilidadNivel || !this.consecuenciaNivel) return 'N/A';
         const matrix = {
             'Casi certero': { 'Insignificante': 'Medio', 'Menor': 'Medio', 'Moderado': 'Alto', 'Favorable': 'Muy alto', 'Muy favorable': 'Muy alto' },
             'Probable': { 'Insignificante': 'Bajo', 'Menor': 'Medio', 'Moderado': 'Alto', 'Favorable': 'Alto', 'Muy favorable': 'Muy alto' },
@@ -177,6 +339,7 @@
     },
 
     getResidualMatrizValue() {
+        if (!this.residualProbabilidadNivel || !this.residualConsecuenciaNivel) return 'N/A';
         const matrix = {
             'Casi certero': { 'Insignificante': 'Medio', 'Menor': 'Medio', 'Moderado': 'Alto', 'Favorable': 'Muy alto', 'Muy favorable': 'Muy alto' },
             'Probable': { 'Insignificante': 'Bajo', 'Menor': 'Medio', 'Moderado': 'Alto', 'Favorable': 'Alto', 'Muy favorable': 'Muy alto' },
@@ -190,13 +353,74 @@
         return 'N/A';
     }
 }">
-  <div class="mb-6">
-    <h1 class="text-2xl font-bold text-slate-800">Ficha de Mejora</h1>
-    <p class="text-sm text-slate-500">Detalle del indicador de mejora.</p>
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">Ficha de Mejora</h1>
+      <p class="text-sm text-slate-500">Detalle del indicador de mejora.</p>
+    </div>
+    
+    <!-- Buscador Combobox y Botón -->
+    <div class="flex items-center gap-2">
+      <!-- Buscador -->
+      <div class="relative w-80">
+        <input type="text" 
+               placeholder="Buscar indicador (rojo/ámbar)..." 
+               class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+               x-model="search"
+               @focus="open = true"
+               @click.away="open = false"
+               @keydown.escape="open = false">
+        <button class="absolute right-2 top-2.5 text-slate-400" @click="open = !open">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        
+        <!-- Dropdown menu -->
+        <div x-show="open && getFilteredIndicadores(search).length > 0" 
+             class="absolute right-0 z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+             style="display: none;">
+          <template x-for="ind in getFilteredIndicadores(search)" :key="ind.id">
+            <button class="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 hover:text-blue-700 transition"
+                    @click="selectIndicador(ind); open = false; search = ind.codigo + ': ' + ind.nombre">
+              <div class="font-semibold text-slate-800" x-text="ind.codigo"></div>
+              <div class="text-slate-600 truncate" x-text="ind.nombre"></div>
+              <div class="text-[10px] text-slate-400" x-text="'Avance: ' + ind.avance.toFixed(1) + '% (Meta: ' + ind.meta_anual + '%)'"></div>
+            </button>
+          </template>
+        </div>
+        <div x-show="open && getFilteredIndicadores(search).length === 0"
+             class="absolute right-0 z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-lg"
+             style="display: none;">
+          No se encontraron indicadores
+        </div>
+      </div>
+
+      <!-- Botón Llenar Datos -->
+      <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              :disabled="!selectedIndicador"
+              @click="fillDataWithAI()">
+        Llenar datos
+      </button>
+    </div>
   </div>
 
-  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <h2 class="mb-4 text-lg font-semibold text-slate-700">INDICADOR 1: Porcentaje de servicios interoperables validados mediante pruebas</h2>
+  <!-- Estado Vacío (Cuando no hay indicador seleccionado) -->
+  <div x-show="!selectedIndicador" class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center shadow-sm">
+    <div class="mx-auto flex h-12 w-12 items-center justify-between rounded-full bg-blue-50 text-blue-600 mb-4 justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    </div>
+    <h3 class="text-base font-semibold text-slate-700">Ningún indicador seleccionado</h3>
+    <p class="mt-1 text-sm text-slate-500">Por favor, busque y seleccione un indicador en estado rojo o ámbar arriba para ver o rellenar la ficha de mejora.</p>
+  </div>
+
+  <!-- Contenedor del Formulario (Solo visible cuando hay indicador seleccionado) -->
+  <div x-show="selectedIndicador" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" style="display: none;">
+    <h2 class="mb-4 text-lg font-semibold text-slate-700">
+      INDICADOR <span x-text="selectedIndicador ? selectedIndicador.codigo : ''"></span>: <span x-text="selectedIndicador ? selectedIndicador.nombre : ''"></span>
+    </h2>
     <div class="mt-6">
       <h3 class="mb-3 text-base font-semibold text-slate-600">1. Datos generales</h3>
       <div class="w-full max-w-4xl border border-black">
@@ -596,17 +820,6 @@
               </tr>
             </tbody>
           </table>
-        </div>
-        <!-- BOTONES DE ACCIÓN (Cancelar y Guardar) -->
-        <div class="mt-6 flex justify-end gap-4 max-w-5xl">
-            <button type="button" @click="cancelForm()" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-slate-200 active:scale-[0.98]">
-                Cancelar
-            </button>
-            <button type="button" @click="submitForm()" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
-                {{ icon("save", "h-4 w-4") }}
-                Guardar/Actualizar
-            </button>
-        </div>
       </div>
 
       <!-- 3.4. Evaluación de la oportunidad -->
@@ -1358,17 +1571,23 @@
         <div class="w-full max-w-md border border-black">
           <table class="w-full border-collapse text-sm">
             <tbody>
-              <tr>
+              <tr class="cursor-pointer transition" :class="estadoProyecto === 'No iniciado' ? 'bg-red-50' : 'hover:bg-slate-50'" @click="estadoProyecto = 'No iniciado'">
                 <td class="border border-black bg-red-600 w-1/3">&nbsp;</td>
-                <td class="border border-black text-center font-bold px-2 py-2">No iniciado</td>
+                <td class="border border-black text-center font-bold px-2 py-2" :class="estadoProyecto === 'No iniciado' ? 'bg-red-100 text-red-700' : ''">
+                  No iniciado <span x-show="estadoProyecto === 'No iniciado'" class="ml-1">✓</span>
+                </td>
               </tr>
-              <tr>
+              <tr class="cursor-pointer transition" :class="estadoProyecto === 'En proceso' ? 'bg-yellow-50' : 'hover:bg-slate-50'" @click="estadoProyecto = 'En proceso'">
                 <td class="border border-black bg-yellow-300 w-1/3">&nbsp;</td>
-                <td class="border border-black text-center font-bold px-2 py-2">En proceso</td>
+                <td class="border border-black text-center font-bold px-2 py-2" :class="estadoProyecto === 'En proceso' ? 'bg-yellow-100 text-slate-800' : ''">
+                  En proceso <span x-show="estadoProyecto === 'En proceso'" class="ml-1">✓</span>
+                </td>
               </tr>
-              <tr>
+              <tr class="cursor-pointer transition" :class="estadoProyecto === 'Cerrado' ? 'bg-green-50' : 'hover:bg-slate-50'" @click="estadoProyecto = 'Cerrado'">
                 <td class="border border-black bg-green-400 w-1/3">&nbsp;</td>
-                <td class="border border-black text-center font-bold px-2 py-2">Cerrado</td>
+                <td class="border border-black text-center font-bold px-2 py-2" :class="estadoProyecto === 'Cerrado' ? 'bg-green-100 text-emerald-800' : ''">
+                  Cerrado <span x-show="estadoProyecto === 'Cerrado'" class="ml-1">✓</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -1404,7 +1623,9 @@
                 <td class="border border-black text-center px-2 py-2" x-text="impactoValor"></td>
                 <td class="border border-black text-center px-2 py-2" x-text="factibilidadValor"></td>
                 <td class="border border-black text-center px-2 py-2">1 mes</td>
-                <td class="border border-black text-center font-bold px-2 py-2 bg-yellow-300">En proceso</td>
+                <td class="border border-black text-center font-bold px-2 py-2 transition" 
+                    :class="estadoProyecto === 'No iniciado' ? 'bg-red-200 text-red-800' : (estadoProyecto === 'En proceso' ? 'bg-yellow-300 text-slate-800' : (estadoProyecto === 'Cerrado' ? 'bg-green-300 text-emerald-950' : ''))" 
+                    x-text="estadoProyecto || 'N/A'"></td>
               </tr>
             </tbody>
           </table>
@@ -1419,23 +1640,33 @@
             <tbody>
               <tr>
                 <td class="border border-black font-bold px-2 py-2 w-1/4 align-top">Declaración del problema (Qué, cuándo, dónde, cuánto)</td>
-                <td class="border border-black px-2 py-2">Las pruebas de interoperabilidad registran un avance del 85% al mes de mayo, por debajo de la meta anual del 95%, con una brecha de 10 puntos porcentuales que puede afectar la integración de los sistemas institucionales.</td>
+                <td class="border border-black px-2 py-1">
+                  <textarea class="w-full bg-transparent px-1 py-1 focus:outline-none focus:ring-2 focus:ring-blue-600 border-none text-slate-700 resize-y" rows="3" x-model="declaracionProblema" placeholder="Ingrese la declaración del problema..."></textarea>
+                </td>
               </tr>
               <tr>
                 <td class="border border-black font-bold px-2 py-2 align-top">Objetivo</td>
-                <td class="border border-black px-2 py-2">Mejorar la validación de los servicios interoperables mediante pruebas, asegurando que los sistemas institucionales intercambien información de manera adecuada, segura y eficiente.</td>
+                <td class="border border-black px-2 py-1">
+                  <textarea class="w-full bg-transparent px-1 py-1 focus:outline-none focus:ring-2 focus:ring-blue-600 border-none text-slate-700 resize-y" rows="2" x-model="objetivo" placeholder="Ingrese el objetivo de la mejora..."></textarea>
+                </td>
               </tr>
               <tr>
                 <td class="border border-black font-bold px-2 py-2 align-top">Indicador y meta</td>
-                <td class="border border-black px-2 py-2">Indicador: Porcentaje de servicios interoperables validados mediante pruebas. Meta: 95%</td>
+                <td class="border border-black px-2 py-1">
+                  <input type="text" class="w-full bg-transparent px-1 py-1 focus:outline-none focus:ring-2 focus:ring-blue-600 border-none text-slate-700" x-model="indicadorMeta" placeholder="Ingrese indicador y meta...">
+                </td>
               </tr>
               <tr>
                 <td class="border border-black font-bold px-2 py-2 align-top">Alcance</td>
-                <td class="border border-black px-2 py-2">La mejora comprende el proceso de interoperabilidad digital, específicamente las pruebas de interoperabilidad aplicadas a los servicios interoperables implementados en los sistemas de información institucionales.</td>
+                <td class="border border-black px-2 py-1">
+                  <textarea class="w-full bg-transparent px-1 py-1 focus:outline-none focus:ring-2 focus:ring-blue-600 border-none text-slate-700 resize-y" rows="2" x-model="alcance" placeholder="Ingrese el alcance..."></textarea>
+                </td>
               </tr>
               <tr>
                 <td class="border border-black font-bold px-2 py-2 align-top">Acción de mejora</td>
-                <td class="border border-black px-2 py-2">Ejecutar pruebas de interoperabilidad a los servicios interoperables para verificar su correcto funcionamiento.</td>
+                <td class="border border-black px-2 py-1">
+                  <textarea class="w-full bg-transparent px-1 py-1 focus:outline-none focus:ring-2 focus:ring-blue-600 border-none text-slate-700 resize-y" rows="2" x-model="accionMejora" placeholder="Ingrese la acción de mejora..."></textarea>
+                </td>
               </tr>
               <tr>
                 <td class="border border-black font-bold px-2 py-2 align-top">Impacto</td>
@@ -1459,6 +1690,17 @@
             </tbody>
           </table>
         </div>
+    </div>
+
+    <!-- BOTONES DE ACCIÓN (Cancelar y Guardar) -->
+    <div class="mt-8 flex justify-end gap-4 max-w-4xl">
+        <button type="button" @click="cancelForm()" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm outline-none transition hover:bg-slate-50 focus-visible:ring-4 focus-visible:ring-slate-200 active:scale-[0.98]">
+            Cancelar
+        </button>
+        <button type="button" @click="submitForm()" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-brand-700/20 outline-none transition hover:bg-brand-800 focus-visible:ring-4 focus-visible:ring-brand-200 active:scale-[0.98]">
+            {{ icon("save", "h-4 w-4") }}
+            <span x-text="hasSavedRecord ? 'Actualizar' : 'Guardar'"></span>
+        </button>
     </div>
 
 </div>

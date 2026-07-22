@@ -1104,3 +1104,37 @@ def save_indicador_procesos(indicador_id, proceso_ids):
             "INSERT INTO indicadores_procesos (indicador_id, proceso_id) VALUES (%s, %s)",
             params
         )
+
+
+def get_ficha_mejora(indicador_id):
+    """Obtiene la ficha de mejora guardada para un indicador, decodificando el campo JSON."""
+    row = fetch_one(
+        "SELECT datos_formulario FROM fichas_mejora WHERE indicador_id = %s",
+        (indicador_id,)
+    )
+    if row:
+        import json
+        try:
+            return json.loads(row["datos_formulario"])
+        except Exception:
+            return None
+    return None
+
+
+def save_ficha_mejora(indicador_id, user_id, datos_formulario):
+    """Guarda o actualiza la ficha de mejora de un indicador."""
+    import json
+    datos_str = json.dumps(datos_formulario)
+    
+    # Comprobar si ya existe registro
+    row = fetch_one("SELECT id FROM fichas_mejora WHERE indicador_id = %s", (indicador_id,))
+    if row:
+        execute(
+            "UPDATE fichas_mejora SET datos_formulario = %s, user_id = %s WHERE indicador_id = %s",
+            (datos_str, user_id, indicador_id)
+        )
+    else:
+        execute(
+            "INSERT INTO fichas_mejora (indicador_id, user_id, datos_formulario) VALUES (%s, %s, %s)",
+            (indicador_id, user_id, datos_str)
+        )

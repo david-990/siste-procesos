@@ -189,6 +189,17 @@ CREATE TABLE IF NOT EXISTS `indicadores` (
   CONSTRAINT `chk_indicadores_prioridad` CHECK ((`prioridad` between 1 and 3))
 ) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS `fichas_mejora` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `indicador_id` int unsigned NOT NULL UNIQUE,
+  `user_id` int unsigned NULL,
+  `datos_formulario` JSON NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_fichas_mejora_indicador` FOREIGN KEY (`indicador_id`) REFERENCES `indicadores` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Volcando datos para la tabla railway.indicadores: ~15 rows (aproximadamente)
 INSERT INTO `indicadores` (`id`, `accion_estrategica_id`, `codigo`, `nombre_indicador`, `prioridad`, `sentido_esperado`, `formula`, `tipo_agregacion`, `estado`, `created_at`, `updated_at`) VALUES
 	(1, 1, 'IND.01.', 'Porcentaje de servicios interoperables validados mediante pruebas', 1, 'ASCENDENTE', '(N° de servicios interoperables validados mediante pruebas / Total de servicios interoperables programados para validación) x 100', 'NO_AGREGABLE', 1, '2026-06-23 22:28:07', '2026-06-24 02:34:44'),

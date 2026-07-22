@@ -1524,4 +1524,82 @@ def api_ai_chat():
 
 @bp.route("/ficha-mejora")
 def ficha_mejora():
-    return render_template("ficha_mejora.html")
+    import json
+    gestion_id = repo.get_default_gestion_id()
+    indicadores_list = []
+    if gestion_id:
+        periodos = repo.get_periodos(gestion_id)
+        if periodos:
+            periodo_id = periodos[0]["id"]
+            if len(periodos) > 1:
+                semestre_2_id = periodos[1]["id"]
+                res = repo.fetch_one(
+                    "SELECT COUNT(*) as count FROM avances WHERE periodo_id = %s AND resultado IS NOT NULL",
+                    (semestre_2_id,)
+                )
+                if res and res["count"] > 0:
+                    periodo_id = semestre_2_id
+            seguimiento = repo.get_panel_seguimiento(gestion_id, periodo_id)
+            for fila in seguimiento:
+                avance = float(fila["avance_tipo_1"]) if fila["avance_tipo_1"] is not None else None
+                if avance is None or avance < 95.0:
+                    # 1. Procesos vinculados
+                    procesos_vinculados = repo.get_procesos_by_indicador(fila["indicador_id"])
+                    
+                    # 2. Línea Base
+                    lineas_base = repo.get_lineas_base(fila["indicador_id"])
+                    linea_base_valor = 0.0
+                    for lb in lineas_base:
+                        if lb["gestion_id"] == gestion_id:
+                            linea_base_valor = float(lb["linea_base"])
+                            break
+                    
+                    # 3. Historial Mensual
+                    historial_mensual = repo.get_metas_valores(fila["indicador_id"], gestion_id)
+                    historial_formateado = []
+                    for hm in historial_mensual:
+                        if hm["valor_obtenido"] is not None:
+                            historial_formateado.append({
+                                "mes": hm["mes"],
+                                "meta": float(hm["meta_mensual"]) if hm["meta_mensual"] is not None else 0.0,
+                                "valor": float(hm["valor_obtenido"])
+                            })
+                            
+                    indicadores_list.append({
+                        "id": fila["indicador_id"],
+                        "codigo": fila["codigo"],
+                        "nombre": fila["nombre_indicador"],
+                        "avance": avance if avance is not None else 0.0,
+                        "gestion": fila["gestion"],
+                        "periodo": fila["periodo"],
+                        "meta_anual": float(fila["meta_anual"]) if fila["meta_anual"] is not None else 95.0,
+                        "accion_estrategica": fila["accion_estrategica"],
+                        "linea_base": linea_base_valor,
+                        "procesos": procesos_vinculados,
+                        "historial": historial_formateado
+                    })
+    return render_template("ficha_mejora.html", indicadores_json=json.dumps(indicadores_list))
+
+
+@bp.route("/api/ficha-mejora/<int:indicador_id>")
+def obtener_ficha_mejora(indicador_id):
+    ficha = repo.get_ficha_mejora(indicador_id)
+    if ficha:
+        return {"success": True, "data": ficha}
+    return {"success": False, "message": "No hay datos guardados para este indicador"}
+
+
+@bp.route("/api/ficha-mejora", methods=["POST"])
+def guardar_ficha_mejora():
+    # user_id de la sesión
+    user_id = session.get("user_id")
+    
+    payload = request.get_json()
+    if not payload or 'indicador_id' not in payload:
+        return {"success": False, "message": "Datos inválidos"}, 400
+        
+    indicador_id = payload['indicador_id']
+    datos_formulario = payload['datos']
+    
+    repo.save_ficha_mejora(indicador_id, user_id, datos_formulario)
+    return {"success": True, "message": "Ficha de mejora guardada exitosamente"}
